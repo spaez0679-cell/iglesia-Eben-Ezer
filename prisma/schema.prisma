@@ -1,0 +1,173 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Admin {
+  id        String   @id @default(cuid())
+  username  String   @unique
+  password  String
+  name      String
+  role      String   @default("admin")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Sermon {
+  id          String   @id @default(cuid())
+  title       String
+  description String?
+  preacher    String?
+  date        DateTime
+  videoUrl    String?
+  type        String   @default("domingo") // "domingo" or "miercoles"
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  photos      SermonPhoto[]
+}
+
+model SermonPhoto {
+  id       String @id @default(cuid())
+  url      String
+  caption  String?
+  sermonId String
+  sermon   Sermon @relation(fields: [sermonId], references: [id], onDelete: Cascade)
+}
+
+model Event {
+  id          String   @id @default(cuid())
+  title       String
+  description String?
+  date        DateTime
+  time        String?
+  location    String?
+  isUpcoming  Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  photos      EventPhoto[]
+}
+
+model EventPhoto {
+  id      String @id @default(cuid())
+  url     String
+  caption String?
+  eventId String
+  event   Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
+}
+
+model YouthMeeting {
+  id          String   @id @default(cuid())
+  title       String
+  description String?
+  date        DateTime
+  videoUrl    String?
+  quote       String?
+  quoteRef    String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  photos      YouthPhoto[]
+}
+
+model YouthPhoto {
+  id           String @id @default(cuid())
+  url          String
+  caption      String?
+  youthMeetingId String
+  youthMeeting YouthMeeting @relation(fields: [youthMeetingId], references: [id], onDelete: Cascade)
+}
+
+model SundaySchool {
+  id          String   @id @default(cuid())
+  title       String
+  description String?
+  date        DateTime
+  teacher     String?
+  videoUrl    String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  photos      SundaySchoolPhoto[]
+  participants SundaySchoolParticipant[]
+}
+
+model SundaySchoolPhoto {
+  id             String @id @default(cuid())
+  url            String
+  caption        String?
+  sundaySchoolId String
+  sundaySchool   SundaySchool @relation(fields: [sundaySchoolId], references: [id], onDelete: Cascade)
+}
+
+model SundaySchoolParticipant {
+  id             String @id @default(cuid())
+  name           String
+  sundaySchoolId String
+  sundaySchool   SundaySchool @relation(fields: [sundaySchoolId], references: [id], onDelete: Cascade)
+}
+
+model Announcement {
+  id        String   @id @default(cuid())
+  title     String
+  content   String?
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model ChurchInfo {
+  id          String @id @default(cuid())
+  key         String @unique
+  value       String
+  updatedAt   DateTime @updatedAt
+}
+
+model GalleryPhoto {
+  id        String   @id @default(cuid())
+  url       String
+  caption   String?
+  section   String?  // "domingo", "miercoles", "jovenes", "escuelita", "eventos", "general"
+  createdAt DateTime @default(now())
+}
+
+model Subscriber {
+  id          String   @id @default(cuid())
+  email       String   @unique
+  name        String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  title     String
+  message   String
+  type      String   @default("general") // "sermon", "event", "announcement", "photo", "video", "general"
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
+}
+
+model BibleBook {
+  id       String        @id @default(cuid())
+  name     String        @unique // Full Spanish name: "Génesis"
+  abbr     String        // Abbreviation: "Gén"
+  bookNum  Int           // 1-66
+  testament String       // "AT" or "NT"
+  chapters Int           // Total chapters
+  verses   BibleVerse[]
+}
+
+model BibleVerse {
+  id       String     @id @default(cuid())
+  bookName String     // "Génesis"
+  chapter  Int        // 1
+  verse    Int        // 1
+  text     String     // Full verse text in Spanish
+  book     BibleBook  @relation(fields: [bookName], references: [name], onDelete: Cascade)
+
+  @@index([bookName, chapter])
+  @@index([bookName, chapter, verse])
+}

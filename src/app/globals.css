@@ -1,0 +1,157 @@
+@import "tailwindcss";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  /* ─── Core palette based on logo: Celeste + Verde claro + Blanco ─── */
+  --color-background: #FAFCFF;
+  --color-foreground: #1E3A4F;
+  --color-card: #FFFFFF;
+  --color-card-foreground: #1E3A4F;
+  --color-popover: #FFFFFF;
+  --color-popover-foreground: #1E3A4F;
+
+  /* Primary = Celeste claro (sky blue from dove) */
+  --color-primary: #3D97B5;
+  --color-primary-foreground: #FFFFFF;
+
+  /* Secondary = Verde claro (light green from globe) */
+  --color-secondary: #E6F5EA;
+  --color-secondary-foreground: #2D8B4E;
+
+  --color-muted: #F0F7FB;
+  --color-muted-foreground: #5E7F94;
+
+  /* Accent = deeper sky blue */
+  --color-accent: #4AAFCF;
+  --color-accent-foreground: #FFFFFF;
+
+  --color-destructive: #DC2626;
+  --color-destructive-foreground: #FFFFFF;
+
+  --color-border: #D4E6F0;
+  --color-input: #D4E6F0;
+  --color-ring: #3D97B5;
+
+  /* ─── Extended semantic colors ─── */
+  --color-sky: #4AAFCF;
+  --color-sky-light: #D0EDF6;
+  --color-sky-lighter: #EAF6FB;
+
+  --color-green-deep: #2D8B4E;
+  --color-green-light: #E6F5EA;
+  --color-green-medium: #5BBF6F;
+
+  --color-teal: #4AAFCF;
+  --color-teal-light: #D0EDF6;
+  --color-teal-medium: #3A8FB7;
+
+  --color-warm-white: #FAFCFF;
+
+  /* Footer dark */
+  --color-footer-bg: #1A4A5E;
+  --color-footer-accent: #7DD3E8;
+
+  /* Radius */
+  --radius-sm: 0.25rem;
+  --radius-md: 0.5rem;
+  --radius-lg: 0.75rem;
+  --radius-xl: 1rem;
+
+  /* Fonts */
+  --font-sans: var(--font-geist-sans), system-ui, sans-serif;
+  --font-mono: var(--font-geist-mono), monospace;
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+    font-feature-settings: "rlig" 1, "calt" 1;
+  }
+}
+
+@layer utilities {
+  /* ─── Scrollbar ─── */
+  .scrollbar-thin {
+    scrollbar-color: #3D97B5 transparent;
+  }
+  .scrollbar-thin::-webkit-scrollbar {
+    width: 6px;
+  }
+  .scrollbar-thin::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  .scrollbar-thin::-webkit-scrollbar-thumb {
+    background-color: #3D97B5;
+    border-radius: 3px;
+  }
+
+  /* ─── Gradients ─── */
+  /* Main gradient: sky blue → light blue → cyan */
+  .gradient-church {
+    background: linear-gradient(135deg, #2E86AB 0%, #4AAFCF 35%, #6DC5D8 65%, #A8DAE6 100%);
+  }
+
+  /* Accent gradient: sky blue shimmer */
+  .gradient-sky {
+    background: linear-gradient(135deg, #4AAFCF 0%, #D0EDF6 50%, #4AAFCF 100%);
+  }
+
+  /* Keep gold for backwards compat but remap to sky */
+  .gradient-gold {
+    background: linear-gradient(135deg, #4AAFCF 0%, #D0EDF6 50%, #4AAFCF 100%);
+  }
+
+  /* Text gradient: sky blue */
+  .text-gradient-gold {
+    background: linear-gradient(135deg, #3D97B5, #7DD3E8);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .text-gradient-church {
+    background: linear-gradient(135deg, #3D97B5, #5BBF6F);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  /* ─── Glass card ─── */
+  .glass-card {
+    background: rgba(255, 255, 255, 0.90);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(61, 151, 181, 0.12);
+  }
+}
+
+/* WhatsApp floating button pulse animation */
+@keyframes pulse-ring {
+  0% { transform: scale(0.8); opacity: 1; }
+  100% { transform: scale(1.4); opacity: 0; }
+}
+.animate-pulse-ring {
+  animation: pulse-ring 1.5s cubic-bezier(0.215, 0.61, 0.355, 1) infinite;
+}
+
+/* Smooth page transitions */
+.page-transition {
+  animation: fadeIn 0.3s ease-in-out;
+}
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Hero overlay — soft sky blue, not too dark */
+.hero-overlay {
+  background: linear-gradient(
+    180deg,
+    rgba(46, 134, 171, 0.60) 0%,
+    rgba(74, 175, 207, 0.40) 40%,
+    rgba(26, 74, 94, 0.55) 100%
+  );
+}
