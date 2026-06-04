@@ -85,6 +85,7 @@ async function fetchBibleFromDB(
 }
 
 export async function GET(request: NextRequest) {
+  console.log("TEST GIT CHANGE")
   try {
     const { searchParams } = new URL(request.url)
     const book = searchParams.get('book')
