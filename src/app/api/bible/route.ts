@@ -1,7 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { PrismaClient } from '@prisma/client'
-
-const prisma = new PrismaClient()
+import { db } from '@/lib/db' 
 
 // In-memory cache for frequently accessed chapters
 const cache = new Map<string, { data: BibleApiResponse; timestamp: number }>()
@@ -33,7 +31,7 @@ async function fetchBibleFromDB(
   }
 
   // Find the book
-  const bookRecord = await prisma.bibleBook.findUnique({
+  const bookRecord = await db.bibleBook.findUnique({
     where: { name: book },
   })
 
@@ -57,7 +55,7 @@ async function fetchBibleFromDB(
     where.verse = verse
   }
 
-  const verses = await prisma.bibleVerse.findMany({
+  const verses = await db.bibleVerse.findMany({
     where,
     orderBy: { verse: 'asc' },
   })
