@@ -1,6 +1,78 @@
 import { hash } from 'bcrypt'
 import { db } from '@/lib/db'
 
+// Bible books with chapter counts
+const BIBLE_BOOKS = [
+  // Old Testament (39 books)
+  { name: 'Génesis', abbr: 'Gén', bookNum: 1, testament: 'AT', chapters: 50 },
+  { name: 'Éxodo', abbr: 'Éx', bookNum: 2, testament: 'AT', chapters: 40 },
+  { name: 'Levítico', abbr: 'Lev', bookNum: 3, testament: 'AT', chapters: 27 },
+  { name: 'Números', abbr: 'Núm', bookNum: 4, testament: 'AT', chapters: 36 },
+  { name: 'Deuteronomio', abbr: 'Deut', bookNum: 5, testament: 'AT', chapters: 34 },
+  { name: 'Josué', abbr: 'Jos', bookNum: 6, testament: 'AT', chapters: 24 },
+  { name: 'Jueces', abbr: 'Jue', bookNum: 7, testament: 'AT', chapters: 21 },
+  { name: 'Rut', abbr: 'Rut', bookNum: 8, testament: 'AT', chapters: 4 },
+  { name: '1 Samuel', abbr: '1 Sam', bookNum: 9, testament: 'AT', chapters: 31 },
+  { name: '2 Samuel', abbr: '2 Sam', bookNum: 10, testament: 'AT', chapters: 24 },
+  { name: '1 Reyes', abbr: '1 Rey', bookNum: 11, testament: 'AT', chapters: 22 },
+  { name: '2 Reyes', abbr: '2 Rey', bookNum: 12, testament: 'AT', chapters: 25 },
+  { name: '1 Crónicas', abbr: '1 Crón', bookNum: 13, testament: 'AT', chapters: 29 },
+  { name: '2 Crónicas', abbr: '2 Crón', bookNum: 14, testament: 'AT', chapters: 36 },
+  { name: 'Esdras', abbr: 'Esd', bookNum: 15, testament: 'AT', chapters: 10 },
+  { name: 'Nehemías', abbr: 'Neh', bookNum: 16, testament: 'AT', chapters: 13 },
+  { name: 'Ester', abbr: 'Est', bookNum: 17, testament: 'AT', chapters: 10 },
+  { name: 'Job', abbr: 'Job', bookNum: 18, testament: 'AT', chapters: 42 },
+  { name: 'Salmos', abbr: 'Sal', bookNum: 19, testament: 'AT', chapters: 150 },
+  { name: 'Proverbios', abbr: 'Prov', bookNum: 20, testament: 'AT', chapters: 31 },
+  { name: 'Eclesiastés', abbr: 'Ecl', bookNum: 21, testament: 'AT', chapters: 12 },
+  { name: 'Cantares', abbr: 'Cant', bookNum: 22, testament: 'AT', chapters: 8 },
+  { name: 'Isaías', abbr: 'Isa', bookNum: 23, testament: 'AT', chapters: 66 },
+  { name: 'Jeremías', abbr: 'Jer', bookNum: 24, testament: 'AT', chapters: 52 },
+  { name: 'Lamentaciones', abbr: 'Lam', bookNum: 25, testament: 'AT', chapters: 5 },
+  { name: 'Ezequiel', abbr: 'Eze', bookNum: 26, testament: 'AT', chapters: 48 },
+  { name: 'Daniel', abbr: 'Dan', bookNum: 27, testament: 'AT', chapters: 12 },
+  { name: 'Oseas', abbr: 'Os', bookNum: 28, testament: 'AT', chapters: 14 },
+  { name: 'Joel', abbr: 'Joel', bookNum: 29, testament: 'AT', chapters: 3 },
+  { name: 'Amós', abbr: 'Amós', bookNum: 30, testament: 'AT', chapters: 9 },
+  { name: 'Abdías', abbr: 'Abd', bookNum: 31, testament: 'AT', chapters: 1 },
+  { name: 'Jonás', abbr: 'Jon', bookNum: 32, testament: 'AT', chapters: 4 },
+  { name: 'Miqueas', abbr: 'Miq', bookNum: 33, testament: 'AT', chapters: 7 },
+  { name: 'Nahúm', abbr: 'Nah', bookNum: 34, testament: 'AT', chapters: 3 },
+  { name: 'Habacuc', abbr: 'Hab', bookNum: 35, testament: 'AT', chapters: 3 },
+  { name: 'Sofonías', abbr: 'Sof', bookNum: 36, testament: 'AT', chapters: 3 },
+  { name: 'Hageo', abbr: 'Hag', bookNum: 37, testament: 'AT', chapters: 2 },
+  { name: 'Zacarías', abbr: 'Zac', bookNum: 38, testament: 'AT', chapters: 14 },
+  { name: 'Malaquías', abbr: 'Mal', bookNum: 39, testament: 'AT', chapters: 4 },
+  // New Testament (27 books)
+  { name: 'Mateo', abbr: 'Mt', bookNum: 40, testament: 'NT', chapters: 28 },
+  { name: 'Marcos', abbr: 'Mr', bookNum: 41, testament: 'NT', chapters: 16 },
+  { name: 'Lucas', abbr: 'Lc', bookNum: 42, testament: 'NT', chapters: 24 },
+  { name: 'Juan', abbr: 'Jn', bookNum: 43, testament: 'NT', chapters: 21 },
+  { name: 'Hechos', abbr: 'Hch', bookNum: 44, testament: 'NT', chapters: 28 },
+  { name: 'Romanos', abbr: 'Ro', bookNum: 45, testament: 'NT', chapters: 16 },
+  { name: '1 Corintios', abbr: '1 Co', bookNum: 46, testament: 'NT', chapters: 16 },
+  { name: '2 Corintios', abbr: '2 Co', bookNum: 47, testament: 'NT', chapters: 13 },
+  { name: 'Gálatas', abbr: 'Gál', bookNum: 48, testament: 'NT', chapters: 6 },
+  { name: 'Efesios', abbr: 'Ef', bookNum: 49, testament: 'NT', chapters: 6 },
+  { name: 'Filipenses', abbr: 'Fil', bookNum: 50, testament: 'NT', chapters: 4 },
+  { name: 'Colosenses', abbr: 'Col', bookNum: 51, testament: 'NT', chapters: 4 },
+  { name: '1 Tesalonicenses', abbr: '1 Ts', bookNum: 52, testament: 'NT', chapters: 5 },
+  { name: '2 Tesalonicenses', abbr: '2 Ts', bookNum: 53, testament: 'NT', chapters: 3 },
+  { name: '1 Timoteo', abbr: '1 Ti', bookNum: 54, testament: 'NT', chapters: 6 },
+  { name: '2 Timoteo', abbr: '2 Ti', bookNum: 55, testament: 'NT', chapters: 4 },
+  { name: 'Tito', abbr: 'Tit', bookNum: 56, testament: 'NT', chapters: 3 },
+  { name: 'Filemón', abbr: 'Flm', bookNum: 57, testament: 'NT', chapters: 1 },
+  { name: 'Hebreos', abbr: 'Heb', bookNum: 58, testament: 'NT', chapters: 13 },
+  { name: 'Santiago', abbr: 'Stg', bookNum: 59, testament: 'NT', chapters: 5 },
+  { name: '1 Pedro', abbr: '1 Pe', bookNum: 60, testament: 'NT', chapters: 5 },
+  { name: '2 Pedro', abbr: '2 Pe', bookNum: 61, testament: 'NT', chapters: 3 },
+  { name: '1 Juan', abbr: '1 Jn', bookNum: 62, testament: 'NT', chapters: 5 },
+  { name: '2 Juan', abbr: '2 Jn', bookNum: 63, testament: 'NT', chapters: 1 },
+  { name: '3 Juan', abbr: '3 Jn', bookNum: 64, testament: 'NT', chapters: 1 },
+  { name: 'Judas', abbr: 'Jud', bookNum: 65, testament: 'NT', chapters: 1 },
+  { name: 'Apocalipsis', abbr: 'Ap', bookNum: 66, testament: 'NT', chapters: 22 },
+]
+
 async function main() {
   console.log('🌱 Seeding database...')
 
@@ -183,6 +255,21 @@ async function main() {
     },
   })
   console.log('✅ Sunday school created:', sundaySchool.title)
+
+  // 8. Create Bible books
+  console.log('📖 Creating Bible books...')
+  for (const book of BIBLE_BOOKS) {
+    await db.bibleBook.create({
+      data: {
+        name: book.name,
+        abbr: book.abbr,
+        bookNum: book.bookNum,
+        testament: book.testament,
+        chapters: book.chapters,
+      },
+    })
+  }
+  console.log(`✅ ${BIBLE_BOOKS.length} Bible books created`)
 
   console.log('\n🎉 Database seeded successfully!')
 }
