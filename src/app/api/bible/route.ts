@@ -7,21 +7,21 @@ const CACHE_TTL = 10 * 60 * 1000
 const bibleBooksMap: Record<string, string> = {
   "Génesis": "genesis", "Éxodo": "exodus", "Levítico": "leviticus", "Números": "numbers",
   "Deuteronomio": "deuteronomy", "Josué": "joshua", "Jueces": "judges", "Rut": "ruth",
-  "1 Samuel": "1 samuel", "2 Samuel": "2 samuel", "1 Reyes": "1 reyes", "2 Reyes": "2 reyes",
-  "1 Crónicas": "1 chronicles", "2 Crónicas": "2 chronicles", "Esdras": "ezra", "Nehemías": "nehemiah",
+  "1 Samuel": "1+samuel", "2 Samuel": "2+samuel", "1 Reyes": "1+reyes", "2 Reyes": "2+reyes",
+  "1 Crónicas": "1+chronicles", "2 Crónicas": "2+chronicles", "Esdras": "ezra", "Nehemías": "nehemiah",
   "Esther": "esther", "Job": "job", "Salmos": "psalms", "Proverbios": "proverbs",
-  "Eclesiastés": "ecclesiastes", "Cantares": "song of solomon", "Isaías": "isaiah", "Jeremías": "jeremiah",
+  "Eclesiastés": "ecclesiastes", "Cantares": "song+of+solomon", "Isaías": "isaiah", "Jeremías": "jeremiah",
   "Lamentaciones": "lamentations", "Ezequiel": "ezekiel", "Daniel": "daniel", "Oseas": "hosea",
   "Joel": "joel", "Amós": "amos", "Abdías": "obadiah", "Jonás": "jonah", "Miqueas": "micah",
   "Nahúm": "nahum", "Habacuc": "habakkuk", "Sofonías": "zephaniah", "Hageo": "haggai",
   "Zacarías": "zechariah", "Malaquías": "malachi",
   "Mateo": "matthew", "Marcos": "mark", "Lucas": "luke", "Juan": "john",
-  "Hechos": "acts", "Romanos": "romans", "1 Corintios": "1 corinthians", "2 Corintios": "2 corinthians",
+  "Hechos": "acts", "Romanos": "romans", "1 Corintios": "1+corinthians", "2 Corintios": "2+corinthians",
   "Gálatas": "galatians", "Efesios": "ephesians", "Filipenses": "philippians", "Colosenses": "colossians",
-  "1 Tesalonicenses": "1 samuel", "2 Tesalonicenses": "2 samuel", "1 Timoteo": "1 timothy", "2 Timoteo": "2 timothy",
+  "1 Tesalonicenses": "1+thessalonians", "2 Tesalonicenses": "2+thessalonians", "1 Timoteo": "1+timothy", "2 Timoteo": "2+timothy",
   "Tito": "titus", "Filemón": "philemon", "Hebreos": "hebrews", "Santiago": "james",
-  "1 Pedro": "1 peter", "2 Pedro": "2 peter", "1 Juan": "1 john", "2 Juan": "2 john",
-  "3 Juan": "3 john", "Judas": "jude", "Apocalipsis": "revelation"
+  "1 Pedro": "1+peter", "2 Pedro": "2+peter", "1 Juan": "1+john", "2 Juan": "2+john",
+  "3 Juan": "3+john", "Judas": "jude", "Apocalipsis": "revelation"
 }
 
 function secureGetRequest(url: string): Promise<any> {
@@ -57,7 +57,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'El parámetro "book" es requerido' }, { status: 400 })
     }
 
-    const bookClean = bibleBooksMap[bookParam] || bookParam.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+    const bookClean = bibleBooksMap[bookParam] || bookParam.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\s+/g, "+")
     
     const cacheKey = `${bookClean}:${chapter}:${verse || 'all'}`
     const cached = cache.get(cacheKey)
@@ -65,20 +65,16 @@ export async function GET(request: NextRequest) {
       return NextResponse.json(cached.data)
     }
 
-    // Usamos el constructor URL nativo. Esto SI O SI inserta la barra "/" correctamente
-    const apiURL = new URL("https://bible-api.com")
-    
-    let passage = bookClean + " " + chapter
+    // Armamos el pasaje con la estructura exacta que bible-api requiere: nombre+capitulo:versiculo
+    let passage = `${bookClean}+${chapter}`
     if (verse) {
-      passage = bookClean + " " + chapter + ":" + verse
+      passage = `${bookClean}+${chapter}:${verse}`
     }
     
-    // Asignamos el camino de forma segura y agregamos el query param
-    apiURL.pathname = "/" + encodeURIComponent(passage)
-    apiURL.searchParams.set("translation", "rv1909")
+    // Forzamos la URL final garantizando la barra diagonal rígida y limpia
+    const urlCompleta = `https://bible-api.com{passage}?translation=rv1909`
 
-    // Llamamos a la API convirtiendo la URL a string de forma controlada
-    const externalData = await secureGetRequest(apiURL.toString())
+    const externalData = await secureGetRequest(urlCompleta)
 
     const formattedData = {
       reference: bookParam + " " + chapter + (verse ? ":" + verse : ""),
