@@ -1,124 +1,65 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { db } from '@/lib/db' 
 
-// In-memory cache for frequently accessed chapters
-const cache = new Map<string, { data: BibleApiResponse; timestamp: number }>()
-const CACHE_TTL = 10 * 60 * 1000 // 10 minutes
-
-interface BibleApiResponse {
-  reference: string
-  verses: Array<{
-    book_id: string
-    book_name: string
-    chapter: number
-    verse: number
-    text: string
-  }>
-  text: string
-  translation_id: string
-  translation_name: string
-}
-
-async function fetchBibleFromDB(
-  book: string,
-  chapter: number,
-  verse?: number
-): Promise<BibleApiResponse> {
-  const cacheKey = `${book}:${chapter}:${verse || 'all'}`
-  const cached = cache.get(cacheKey)
-  if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
-    return cached.data
-  }
-
-  // Find the book
-  const bookRecord = await db.bibleBook.findUnique({
-    where: { name: book },
-  })
-
-  if (!bookRecord) {
-    throw new Error(`Libro no encontrado: "${book}"`)
-  }
-
-  if (chapter < 1 || chapter > bookRecord.chapters) {
-    throw new Error(
-      `Capítulo inválido. ${book} tiene ${bookRecord.chapters} capítulos.`
-    )
-  }
-
-  // Build query
-  const where: Record<string, unknown> = {
-    bookName: book,
-    chapter,
-  }
-
-  if (verse !== undefined) {
-    where.verse = verse
-  }
-
-  const verses = await db.bibleVerse.findMany({
-    where,
-    orderBy: { verse: 'asc' },
-  })
-
-  if (verses.length === 0) {
-    throw new Error('No se encontraron versículos para este pasaje.')
-  }
-
-  const result: BibleApiResponse = {
-    reference: verse
-      ? `${bookRecord.abbr} ${chapter}:${verse}`
-      : `${bookRecord.abbr} ${chapter}`,
-    verses: verses.map((v) => ({
-      book_id: bookRecord.abbr,
-      book_name: book,
-      chapter: v.chapter,
-      verse: v.verse,
-      text: v.text,
-    })),
-    text: verses.map((v) => v.text).join('\n'),
-    translation_id: 'rv1909',
-    translation_name: 'Reina-Valera (Antigua)',
-  }
-
-  cache.set(cacheKey, { data: result, timestamp: Date.now() })
-  return result
-}
+// Cache en memoria por 10 minutos para no saturar la API externa
+const cache = new Map<string, { data: any; timestamp: number }>()
+const CACHE_TTL = 10 * 60 * 1000 
 
 export async function GET(request: NextRequest) {
-  console.log("TEST GIT CHANGE")
   try {
     const { searchParams } = new URL(request.url)
-    const book = searchParams.get('book')
-    const chapter = parseInt(searchParams.get('chapter') || '1', 10)
+    let book = searchParams.get('book')
+    const chapter = searchParams.get('chapter') || '1'
     const verse = searchParams.get('verse')
-      ? parseInt(searchParams.get('verse')!, 10)
-      : undefined
 
     if (!book) {
-      return NextResponse.json(
-        { error: 'El parámetro "book" es requerido' },
-        { status: 400 }
-      )
+      return NextResponse.json({ error: 'El parámetro "book" es requerido' }, { status: 400 })
     }
 
-    if (chapter < 1 || chapter > 150) {
-      return NextResponse.json(
-        { error: 'El capítulo debe estar entre 1 y 150' },
-        { status: 400 }
-      )
+    // Limpiamos acentos porque las APIs externas suelen fallar con ellos (ej: Génesis -> Genesis)
+    const bookClean = book.normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+    
+    // Armamos la URL para la API externa gratuita (bible-api.com) usando la versión Reina Valera
+    const cacheKey = `${bookClean}:${chapter}:${verse || 'all'}`
+    const cached = cache.get(cacheKey)
+    if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
+      return NextResponse.json(cached.data)
     }
 
-    const data = await fetchBibleFromDB(book, chapter, verse)
-    return NextResponse.json(data)
+    // Consultamos la API externa
+    let url = `https://bible-api.com{bookClean}+${chapter}?translation=rv1909`
+    if (verse) {
+      url = `https://bible-api.com{bookClean}+${chapter}:${verse}?translation=rv1909`
+    }
+
+    const res = await fetch(url)
+    if (!res.ok) {
+      throw new Error('No se pudo obtener el pasaje de la API externa')
+    }
+
+    const externalData = await res.json()
+
+    // Adaptamos el formato de respuesta para que tu diseño web actual no se rompa
+    const formattedData = {
+      reference: externalData.reference,
+      verses: externalData.verses.map((v: any) => ({
+        book_id: externalData.translation_id,
+        book_name: book,
+        chapter: v.chapter,
+        verse: v.verse,
+        text: v.text.trim()
+      })),
+      text: externalData.text,
+      translation_id: 'rv1909',
+      translation_name: 'Reina-Valera (Antigua)'
+    }
+
+    cache.set(cacheKey, { data: formattedData, timestamp: Date.now() })
+    return NextResponse.json(formattedData)
+
   } catch (error) {
     console.error('Bible API error:', error)
     return NextResponse.json(
-      {
-        error:
-          error instanceof Error
-            ? error.message
-            : 'Error al obtener el pasaje bíblico.',
-      },
+      { error: 'Error al obtener el pasaje bíblico desde la API externa.' },
       { status: 500 }
     )
   }
