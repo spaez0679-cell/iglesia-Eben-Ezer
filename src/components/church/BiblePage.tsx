@@ -29,7 +29,6 @@ import {
   OLD_TESTAMENT_BOOKS,
   NEW_TESTAMENT_BOOKS,
   getBookChapterVerse,
-  buildBibleApiUrl,
 } from '@/lib/bible'
 
 interface BibleApiResponse {
@@ -47,6 +46,26 @@ interface BibleApiResponse {
 }
 
 const MAX_CHAPTERS = 150
+
+const localBooksMap: Record<string, string> = {
+  "Génesis": "genesis", "Éxodo": "exodus", "Levítico": "leviticus", "Números": "numbers",
+  "Deuteronomio": "deuteronomy", "Josué": "joshua", "Jueces": "judges", "Rut": "ruth",
+  "1 Samuel": "1+samuel", "2 Samuel": "2+samuel", "1 Reyes": "1+reyes", "2 Reyes": "2+reyes",
+  "1 Crónicas": "1+chronicles", "2 Crónicas": "2+chronicles", "Esdras": "ezra", "Nehemías": "nehemiah",
+  "Ester": "esther", "Job": "job", "Salmos": "psalms", "Proverbios": "proverbs",
+  "Eclesiastés": "ecclesiastes", "Cantares": "song+of+solomon", "Isaías": "isaiah", "Jeremías": "jeremiah",
+  "Lamentaciones": "lamentations", "Ezequiel": "ezekiel", "Daniel": "daniel", "Oseas": "hosea",
+  "Joel": "joel", "Amós": "amos", "Abdías": "obadiah", "Jonás": "jonah", "Miqueas": "micah",
+  "Nahúm": "nahum", "Habacuc": "habakkuk", "Sofonías": "zephaniah", "Hageo": "haggai",
+  "Zacarías": "zechariah", "Malaquías": "malachi",
+  "Mateo": "matthew", "Marcos": "mark", "Lucas": "luke", "Juan": "john",
+  "Hechos": "acts", "Romanos": "romans", "1 Corintios": "1+corinthians", "2 Corintios": "2+corinthians",
+  "Gálatas": "galatians", "Efesios": "ephesians", "Filipenses": "philippians", "Colosenses": "colossians",
+  "1 Tesalonicenses": "1+thessalonians", "2 Tesalonicenses": "2+thessalonians", "1 Timoteo": "1+timothy", "2 Timoteo": "2+timothy",
+  "Tito": "titus", "Filemón": "philemon", "Hebreos": "hebrews", "Santiago": "james",
+  "1 Pedro": "1+peter", "2 Pedro": "2+peter", "1 Juan": "1+john", "2 Juan": "2+john",
+  "3 Juan": "3+john", "Judas": "jude", "Apocalipsis": "revelation"
+}
 
 export function BiblePage() {
   const { setCurrentPage } = useAppStore()
@@ -81,8 +100,13 @@ export function BiblePage() {
       }
 
       try {
-        const url = buildBibleApiUrl(book, ch, vs)
-        const res = await fetch(url)
+        const bookClean = localBooksMap[book] || book.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\s+/g, "+")
+        let passage = `${bookClean}+${ch}`
+        if (vs) {
+          passage = `${bookClean}+${ch}:${vs}`
+        }
+
+        const res = await fetch(`https://bible-api.com{passage}?translation=rv1909`)
 
         if (!res.ok) {
           setError('No se pudo obtener el pasaje. Intenta de nuevo.')
@@ -90,8 +114,23 @@ export function BiblePage() {
           return
         }
 
-        const data: BibleApiResponse = await res.json()
-        setBibleData(data)
+        const externalData = await res.json()
+        
+        const formattedData: BibleApiResponse = {
+          reference: `${book} ${ch}${vs ? ':' + vs : ''}`,
+          verses: externalData.verses.map((v: any) => ({
+            book_id: externalData.translation_id,
+            book_name: book,
+            chapter: v.chapter,
+            verse: v.verse,
+            text: v.text.trim()
+          })),
+          text: externalData.text,
+          translation_id: 'rv1909',
+          translation_name: 'Reina-Valera (Antigua)'
+        }
+
+        setBibleData(formattedData)
       } catch {
         setError('Error de conexión. Por favor intenta más tarde.')
       } finally {
@@ -126,10 +165,8 @@ export function BiblePage() {
       fetchBible(selectedBook, chapterNum + 1, verse ? parseInt(verse) : undefined)
     }
   }
-
   return (
     <div className="page-transition pb-20 md:pb-0">
-      {/* Header */}
       <section className="gradient-church py-12 sm:py-16">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <button
@@ -156,35 +193,26 @@ export function BiblePage() {
       </section>
 
       <div className="mx-auto max-w-4xl px-4 py-8 sm:px-6 lg:px-8">
-        {/* Selector Card */}
         <Card className="mb-8 border-[#D4E6F0] shadow-sm">
           <CardContent className="p-6">
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-              {/* Testament filter */}
               <div className="space-y-2">
                 <Label className="text-sm font-medium">Testamento</Label>
                 <Select
                   value={testament}
-                  onValueChange={(v) =>
-                    setTestament(v as 'all' | 'old' | 'new')
-                  }
+                  onValueChange={(v) => setTestament(v as 'all' | 'old' | 'new')}
                 >
                   <SelectTrigger className="border-[#C8E0ED]">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">Todos (66 libros)</SelectItem>
-                    <SelectItem value="old">
-                      Antiguo Testamento ({OLD_TESTAMENT_BOOKS.length})
-                    </SelectItem>
-                    <SelectItem value="new">
-                      Nuevo Testamento ({NEW_TESTAMENT_BOOKS.length})
-                    </SelectItem>
+                    <SelectItem value="old">Antiguo Testamento ({OLD_TESTAMENT_BOOKS.length})</SelectItem>
+                    <SelectItem value="new">Nuevo Testamento ({NEW_TESTAMENT_BOOKS.length})</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
 
-              {/* Book */}
               <div className="space-y-2">
                 <Label className="text-sm font-medium">Libro</Label>
                 <Select value={selectedBook} onValueChange={setSelectedBook}>
@@ -201,7 +229,6 @@ export function BiblePage() {
                 </Select>
               </div>
 
-              {/* Chapter */}
               <div className="space-y-2">
                 <Label className="text-sm font-medium">Capítulo</Label>
                 <Input
@@ -215,11 +242,9 @@ export function BiblePage() {
                 />
               </div>
 
-              {/* Verse (optional) */}
               <div className="space-y-2">
                 <Label className="text-sm font-medium">
-                  Versículo{' '}
-                  <span className="text-muted-foreground">(opcional)</span>
+                  Versículo <span className="text-muted-foreground">(opcional)</span>
                 </Label>
                 <Input
                   type="number"
@@ -238,50 +263,30 @@ export function BiblePage() {
                 disabled={loading}
                 className="w-full gradient-church text-white hover:opacity-90 sm:w-auto"
               >
-                {loading ? (
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                ) : (
-                  <Search className="mr-2 h-4 w-4" />
-                )}
+                {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Search className="mr-2 h-4 w-4" />}
                 Leer
               </Button>
             </div>
           </CardContent>
         </Card>
 
-        {/* Error */}
         {error && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            className="mb-6"
-          >
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="mb-6">
             <Card className="border-red-200 bg-red-50">
-              <CardContent className="p-4 text-center text-sm text-red-600">
-                {error}
-              </CardContent>
+              <CardContent className="p-4 text-center text-sm text-red-600">{error}</CardContent>
             </Card>
           </motion.div>
         )}
 
-        {/* Loading */}
         {loading && (
           <div className="flex flex-col items-center justify-center py-16">
             <Loader2 className="h-8 w-8 animate-spin text-primary" />
-            <p className="mt-3 text-sm text-muted-foreground">
-              Cargando pasaje bíblico...
-            </p>
+            <p className="mt-3 text-sm text-muted-foreground">Cargando pasaje bíblico...</p>
           </div>
         )}
 
-        {/* Bible Content */}
         {bibleData && !loading && (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.4 }}
-          >
-            {/* Navigation */}
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }}>
             <div className="mb-6 flex items-center justify-between">
               <Button
                 variant="outline"
@@ -296,15 +301,10 @@ export function BiblePage() {
 
               <div className="flex items-center gap-2">
                 <div className="text-center">
-                  <Badge
-                    variant="secondary"
-                    className="bg-[#E6F5EA] text-primary px-3 py-1"
-                  >
+                  <Badge variant="secondary" className="bg-[#E6F5EA] text-primary px-3 py-1">
                     {bibleData.reference}
                   </Badge>
-                  <p className="mt-1 text-xs text-muted-foreground">
-                    {bibleData.translation_name}
-                  </p>
+                  <p className="mt-1 text-xs text-muted-foreground">{bibleData.translation_name}</p>
                 </div>
                 <ShareMenu
                   title={`${bibleData.reference} — Biblia Reina-Valera`}
@@ -326,45 +326,33 @@ export function BiblePage() {
               </Button>
             </div>
 
-            {/* Text */}
             <Card className="border-[#D4E6F0]">
               <CardContent className="p-6 sm:p-8">
                 {bibleData.verses ? (
                   <div className="space-y-4">
                     {bibleData.verses.map((v) => (
-                      <p
-                        key={v.verse}
-                        className="text-base leading-relaxed sm:text-lg"
-                      >
-                        <sup className="mr-1 text-xs font-bold text-primary">
-                          {v.verse}
-                        </sup>
+                      <p key={v.verse} className="text-base leading-relaxed sm:text-lg">
+                        <sup className="mr-1 text-xs font-bold text-primary">{v.verse}</sup>
                         {v.text}
                       </p>
                     ))}
                   </div>
                 ) : (
-                  <p className="text-base leading-relaxed sm:text-lg">
-                    {bibleData.text}
-                  </p>
+                  <p className="text-base leading-relaxed sm:text-lg">{bibleData.text}</p>
                 )}
               </CardContent>
             </Card>
           </motion.div>
         )}
 
-        {/* Initial state */}
         {!bibleData && !loading && !error && (
           <div className="flex flex-col items-center justify-center py-16 text-center">
             <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-[#E6F5EA]">
               <Book className="h-8 w-8 text-primary" />
             </div>
-            <h3 className="text-lg font-semibold text-foreground">
-              Selecciona un pasaje
-            </h3>
+            <h3 className="text-lg font-semibold text-foreground">Selecciona un pasaje</h3>
             <p className="mt-1 max-w-sm text-sm text-muted-foreground">
-              Elige un libro, capítulo y versículo opcional para leer la
-              Palabra de Dios en la versión Reina-Valera en español.
+              Elige un libro, capítulo y versículo opcional para leer la Palabra de Dios en la versión Reina-Valera en español.
             </p>
           </div>
         )}
