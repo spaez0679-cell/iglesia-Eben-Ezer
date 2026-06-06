@@ -3,7 +3,6 @@ import { NextRequest, NextResponse } from 'next/server'
 const cache = new Map<string, { data: any; timestamp: number }>()
 const CACHE_TTL = 10 * 60 * 1000 
 
-// Diccionario corregido en minúsculas como lo exige estrictamente bible-api.com
 const bibleBooksMap: Record<string, string> = {
   "Génesis": "genesis", "Éxodo": "exodus", "Levítico": "leviticus", "Números": "numbers",
   "Deuteronomio": "deuteronomy", "Josué": "joshua", "Jueces": "judges", "Rut": "ruth",
@@ -35,7 +34,6 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'El parámetro "book" es requerido' }, { status: 400 })
     }
 
-    // Buscamos el nombre del libro mapeado en minúsculas
     const bookClean = bibleBooksMap[bookParam] || bookParam.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "")
     
     const cacheKey = `${bookClean}:${chapter}:${verse || 'all'}`
@@ -44,21 +42,23 @@ export async function GET(request: NextRequest) {
       return NextResponse.json(cached.data)
     }
 
-    // Armamos el pasaje usando el signo más (+) de forma directa y limpia
-    const passage = verse ? `${bookClean}+${chapter}:${verse}` : `${bookClean}+${chapter}`
+    // Unimos los textos usando el símbolo + común de programación para evitar fallos de lectura literales
+    let passage = bookClean + "+" + chapter
+    if (verse) {
+      passage = bookClean + "+" + chapter + ":" + verse
+    }
     
-    // Concatenamos el string directamente para evitar transformaciones raras de Vercel
-    const urlCompleta = `https://bible-api.com{passage}?translation=rv1909`
+    const urlCompleta = "https://bible-api.com" + passage + "?translation=rv1909"
 
     const res = await fetch(urlCompleta)
     if (!res.ok) {
-      throw new Error(`Error en API externa: ${res.status}`)
+      throw new Error("Error en API externa: " + res.status)
     }
 
     const externalData = await res.json()
 
     const formattedData = {
-      reference: `${bookParam} ${chapter}${verse ? ':' + verse : ''}`,
+      reference: bookParam + " " + chapter + (verse ? ":" + verse : ""),
       verses: externalData.verses.map((v: any) => ({
         book_id: externalData.translation_id,
         book_name: bookParam,
@@ -67,8 +67,8 @@ export async function GET(request: NextRequest) {
         text: v.text.trim()
       })),
       text: externalData.text,
-      translation_id: 'rv1909',
-      translation_name: 'Reina-Valera (Antigua)'
+      translation_id: "rv1909",
+      translation_name: "Reina-Valera (Antigua)"
     }
 
     cache.set(cacheKey, { data: formattedData, timestamp: Date.now() })
