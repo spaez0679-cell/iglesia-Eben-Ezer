@@ -3,7 +3,6 @@ import { NextRequest, NextResponse } from 'next/server'
 const cache = new Map<string, { data: any; timestamp: number }>()
 const CACHE_TTL = 10 * 60 * 1000 
 
-// Diccionario para convertir los nombres en español a los que entiende la API externa
 const bibleBooksMap: Record<string, string> = {
   "Génesis": "Genesis", "Éxodo": "Exodus", "Levítico": "Leviticus", "Números": "Numbers",
   "Deuteronomio": "Deuteronomy", "Josué": "Joshua", "Jueces": "Judges", "Rut": "Ruth",
@@ -35,7 +34,6 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'El parámetro "book" es requerido' }, { status: 400 })
     }
 
-    // Buscamos la traducción al inglés/estándar para la API. Si no está, usa el parámetro limpio.
     const bookClean = bibleBooksMap[bookParam] || bookParam.normalize("NFD").replace(/[\u0300-\u036f]/g, "")
     
     const cacheKey = `${bookClean}:${chapter}:${verse || 'all'}`
@@ -44,25 +42,28 @@ export async function GET(request: NextRequest) {
       return NextResponse.json(cached.data)
     }
 
-    // Consultamos la API con el nombre de libro que sí entiende
-    let url = `https://bible-api.com{encodeURIComponent(bookClean)}+${chapter}?translation=rv1909`
-    if (verse) {
-      url = `https://bible-api.com{encodeURIComponent(bookClean)}+${chapter}:${verse}?translation=rv1909`
-    }
+    // Construcción limpia y segura de la URL usando la API nativa de JavaScript
+    // Esto evita usar el "+" manual que rompía el fetch en Vercel
+    const apiTargetUrl = new URL('https://bible-api.com')
+    
+    // El pasaje se construye usando un espacio normal (la API lo procesa bien si va en el path)
+    const passage = verse ? `${bookClean} ${chapter}:${verse}` : `${bookClean} ${chapter}`
+    apiTargetUrl.pathname = `/${passage}`
+    apiTargetUrl.searchParams.set('translation', 'rv1909')
 
-    const res = await fetch(url)
+    // Hacemos el fetch pasándole la URL en string limpio
+    const res = await fetch(apiTargetUrl.toString())
     if (!res.ok) {
       throw new Error(`Error en API externa: ${res.status}`)
     }
 
     const externalData = await res.json()
 
-    // Devolvemos los datos estructurados exactamente como los espera tu Frontend
     const formattedData = {
       reference: `${bookParam} ${chapter}${verse ? ':' + verse : ''}`,
       verses: externalData.verses.map((v: any) => ({
         book_id: externalData.translation_id,
-        book_name: bookParam, // Le devolvemos el nombre original en español para que se vea bien en tu interfaz
+        book_name: bookParam,
         chapter: v.chapter,
         verse: v.verse,
         text: v.text.trim()
