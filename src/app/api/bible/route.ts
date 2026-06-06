@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import https from 'https'
 
 const cache = new Map<string, { data: any; timestamp: number }>()
 const CACHE_TTL = 10 * 60 * 1000 
@@ -23,6 +24,29 @@ const bibleBooksMap: Record<string, string> = {
   "3 Juan": "3 john", "Judas": "jude", "Apocalipsis": "revelation"
 }
 
+// Función auxiliar para hacer la petición HTTP de forma segura e independiente de Vercel Fetch
+function secureGetRequest(url: string): Promise<any> {
+  return new Promise((resolve, reject) => {
+    https.get(url, (res) => {
+      let data = ''
+      res.on('data', (chunk) => { data += chunk })
+      res.on('end', () => {
+        if (res.statusCode && res.statusCode >= 200 && res.statusCode < 300) {
+          try {
+            resolve(JSON.parse(data))
+          } catch (e) {
+            reject(new Error("Error al procesar JSON de la API"))
+          }
+        } else {
+          reject(new Error(`API respondió con estado: ${res.statusCode}`))
+        }
+      })
+    }).on('error', (err) => {
+      reject(err)
+    })
+  })
+}
+
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url)
@@ -42,20 +66,16 @@ export async function GET(request: NextRequest) {
       return NextResponse.json(cached.data)
     }
 
-    // Unimos los textos usando el símbolo + común de programación para evitar fallos de lectura literales
-    let passage = bookClean + "+" + chapter
+    // Usamos codificación nativa completa de componentes URL
+    let passage = encodeURIComponent(bookClean) + "+" + encodeURIComponent(chapter)
     if (verse) {
-      passage = bookClean + "+" + chapter + ":" + verse
+      passage = encodeURIComponent(bookClean) + "+" + encodeURIComponent(chapter) + ":" + encodeURIComponent(verse)
     }
     
     const urlCompleta = "https://bible-api.com" + passage + "?translation=rv1909"
 
-    const res = await fetch(urlCompleta)
-    if (!res.ok) {
-      throw new Error("Error en API externa: " + res.status)
-    }
-
-    const externalData = await res.json()
+    // Consumimos la API usando nuestra función blindada de node
+    const externalData = await secureGetRequest(urlCompleta)
 
     const formattedData = {
       reference: bookParam + " " + chapter + (verse ? ":" + verse : ""),
@@ -77,7 +97,10 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     console.error('Bible API error:', error)
     return NextResponse.json(
-      { error: 'Error interno al procesar el pasaje bíblico.' },
+      { 
+        error: 'Error interno al procesar el pasaje bíblico.',
+        details: error instanceof Error ? error.message : String(error)
+      },
       { status: 500 }
     )
   }
