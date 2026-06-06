@@ -3,24 +3,25 @@ import { NextRequest, NextResponse } from 'next/server'
 const cache = new Map<string, { data: any; timestamp: number }>()
 const CACHE_TTL = 10 * 60 * 1000 
 
+// Diccionario corregido en minúsculas como lo exige estrictamente bible-api.com
 const bibleBooksMap: Record<string, string> = {
-  "Génesis": "Genesis", "Éxodo": "Exodus", "Levítico": "Leviticus", "Números": "Numbers",
-  "Deuteronomio": "Deuteronomy", "Josué": "Joshua", "Jueces": "Judges", "Rut": "Ruth",
-  "1 Samuel": "1 Samuel", "2 Samuel": "2 Samuel", "1 Reyes": "1 Reyes", "2 Reyes": "2 Reyes",
-  "1 Crónicas": "1 Chronicles", "2 Crónicas": "2 Chronicles", "Esdras": "Ezra", "Nehemías": "Nehemiah",
-  "Esther": "Esther", "Job": "Job", "Salmos": "Psalms", "Proverbios": "Proverbs",
-  "Eclesiastés": "Ecclesiastes", "Cantares": "Song of Solomon", "Isaías": "Isaiah", "Jeremías": "Jeremiah",
-  "Lamentaciones": "Lamentations", "Ezequiel": "Ezekiel", "Daniel": "Daniel", "Oseas": "Hosea",
-  "Joel": "Joel", "Amós": "Amos", "Abdías": "Obadiah", "Jonás": "Jonah", "Miqueas": "Micah",
-  "Nahúm": "Nahum", "Habacuc": "Habakkuk", "Sofonías": "Zephaniah", "Hageo": "Haggai",
-  "Zacarías": "Zechariah", "Malaquías": "Malachi",
-  "Mateo": "Matthew", "Marcos": "Mark", "Lucas": "Luke", "Juan": "John",
-  "Hechos": "Acts", "Romanos": "Romans", "1 Corintios": "1 Corinthians", "2 Corintios": "2 Corinthians",
-  "Gálatas": "Galatians", "Efesios": "Ephesians", "Filipenses": "Philippians", "Colosenses": "Colossians",
-  "1 Tesalonicenses": "1 Thessalonians", "2 Tesalonicenses": "2 Thessalonians", "1 Timoteo": "1 Timothy", "2 Timoteo": "2 Timothy",
-  "Tito": "Tito", "Filemón": "Philemon", "Hebreos": "Hebrews", "Santiago": "James",
-  "1 Pedro": "1 Peter", "2 Pedro": "2 Peter", "1 Juan": "1 John", "2 Juan": "2 John",
-  "3 Juan": "3 John", "Judas": "Jude", "Apocalipsis": "Revelation"
+  "Génesis": "genesis", "Éxodo": "exodus", "Levítico": "leviticus", "Números": "numbers",
+  "Deuteronomio": "deuteronomy", "Josué": "joshua", "Jueces": "judges", "Rut": "ruth",
+  "1 Samuel": "1 samuel", "2 Samuel": "2 samuel", "1 Reyes": "1 reyes", "2 Reyes": "2 reyes",
+  "1 Crónicas": "1 chronicles", "2 Crónicas": "2 chronicles", "Esdras": "ezra", "Nehemías": "nehemiah",
+  "Esther": "esther", "Job": "job", "Salmos": "psalms", "Proverbios": "proverbs",
+  "Eclesiastés": "ecclesiastes", "Cantares": "song of solomon", "Isaías": "isaiah", "Jeremías": "jeremiah",
+  "Lamentaciones": "lamentations", "Ezequiel": "ezekiel", "Daniel": "daniel", "Oseas": "hosea",
+  "Joel": "joel", "Amós": "amos", "Abdías": "obadiah", "Jonás": "jonah", "Miqueas": "micah",
+  "Nahúm": "nahum", "Habacuc": "habakkuk", "Sofonías": "zephaniah", "Hageo": "haggai",
+  "Zacarías": "zechariah", "Malaquías": "malachi",
+  "Mateo": "matthew", "Marcos": "mark", "Lucas": "luke", "Juan": "john",
+  "Hechos": "acts", "Romanos": "romans", "1 Corintios": "1 corinthians", "2 Corintios": "2 corinthians",
+  "Gálatas": "galatians", "Efesios": "ephesians", "Filipenses": "philippians", "Colosenses": "colossians",
+  "1 Tesalonicenses": "1 Any", "2 Tesalonicenses": "2 Any", "1 Timoteo": "1 timothy", "2 Timoteo": "2 timothy",
+  "Tito": "titus", "Filemón": "philemon", "Hebreos": "hebrews", "Santiago": "james",
+  "1 Pedro": "1 peter", "2 Pedro": "2 peter", "1 Juan": "1 john", "2 Juan": "2 john",
+  "3 Juan": "3 john", "Judas": "jude", "Apocalipsis": "revelation"
 }
 
 export async function GET(request: NextRequest) {
@@ -34,7 +35,8 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'El parámetro "book" es requerido' }, { status: 400 })
     }
 
-    const bookClean = bibleBooksMap[bookParam] || bookParam.normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+    // Buscamos el nombre del libro mapeado en minúsculas
+    const bookClean = bibleBooksMap[bookParam] || bookParam.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "")
     
     const cacheKey = `${bookClean}:${chapter}:${verse || 'all'}`
     const cached = cache.get(cacheKey)
@@ -42,17 +44,13 @@ export async function GET(request: NextRequest) {
       return NextResponse.json(cached.data)
     }
 
-    // Construcción limpia y segura de la URL usando la API nativa de JavaScript
-    // Esto evita usar el "+" manual que rompía el fetch en Vercel
-    const apiTargetUrl = new URL('https://bible-api.com')
+    // Armamos el pasaje usando el signo más (+) de forma directa y limpia
+    const passage = verse ? `${bookClean}+${chapter}:${verse}` : `${bookClean}+${chapter}`
     
-    // El pasaje se construye usando un espacio normal (la API lo procesa bien si va en el path)
-    const passage = verse ? `${bookClean} ${chapter}:${verse}` : `${bookClean} ${chapter}`
-    apiTargetUrl.pathname = `/${passage}`
-    apiTargetUrl.searchParams.set('translation', 'rv1909')
+    // Concatenamos el string directamente para evitar transformaciones raras de Vercel
+    const urlCompleta = `https://bible-api.com{passage}?translation=rv1909`
 
-    // Hacemos el fetch pasándole la URL en string limpio
-    const res = await fetch(apiTargetUrl.toString())
+    const res = await fetch(urlCompleta)
     if (!res.ok) {
       throw new Error(`Error en API externa: ${res.status}`)
     }
