@@ -106,7 +106,7 @@ export function BiblePage() {
           passage = `${bookClean}+${ch}:${vs}`
         }
 
-        const res = await fetch(`https://bible-api.com/${passage}?translation=rv1909`)
+        const res = await fetch(`/api/bible?book=${book}&chapter=${ch}${vs ? '&verse=' + vs : ''}`)
 
         if (!res.ok) {
           setError('No se pudo obtener el pasaje. Intenta de nuevo.')
