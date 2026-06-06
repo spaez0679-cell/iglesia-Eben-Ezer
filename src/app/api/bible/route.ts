@@ -18,13 +18,12 @@ const bibleBooksMap: Record<string, string> = {
   "Mateo": "matthew", "Marcos": "mark", "Lucas": "luke", "Juan": "john",
   "Hechos": "acts", "Romanos": "romans", "1 Corintios": "1 corinthians", "2 Corintios": "2 corinthians",
   "Gálatas": "galatians", "Efesios": "ephesians", "Filipenses": "philippians", "Colosenses": "colossians",
-  "1 Tesalonicenses": "1 Any", "2 Tesalonicenses": "2 Any", "1 Timoteo": "1 timothy", "2 Timoteo": "2 timothy",
+  "1 Tesalonicenses": "1 samuel", "2 Tesalonicenses": "2 samuel", "1 Timoteo": "1 timothy", "2 Timoteo": "2 timothy",
   "Tito": "titus", "Filemón": "philemon", "Hebreos": "hebrews", "Santiago": "james",
   "1 Pedro": "1 peter", "2 Pedro": "2 peter", "1 Juan": "1 john", "2 Juan": "2 john",
   "3 Juan": "3 john", "Judas": "jude", "Apocalipsis": "revelation"
 }
 
-// Función auxiliar para hacer la petición HTTP de forma segura e independiente de Vercel Fetch
 function secureGetRequest(url: string): Promise<any> {
   return new Promise((resolve, reject) => {
     https.get(url, (res) => {
@@ -66,16 +65,20 @@ export async function GET(request: NextRequest) {
       return NextResponse.json(cached.data)
     }
 
-    // Usamos codificación nativa completa de componentes URL
-    let passage = encodeURIComponent(bookClean) + "+" + encodeURIComponent(chapter)
+    // Usamos el constructor URL nativo. Esto SI O SI inserta la barra "/" correctamente
+    const apiURL = new URL("https://bible-api.com")
+    
+    let passage = bookClean + " " + chapter
     if (verse) {
-      passage = encodeURIComponent(bookClean) + "+" + encodeURIComponent(chapter) + ":" + encodeURIComponent(verse)
+      passage = bookClean + " " + chapter + ":" + verse
     }
     
-    const urlCompleta = "https://bible-api.com" + passage + "?translation=rv1909"
+    // Asignamos el camino de forma segura y agregamos el query param
+    apiURL.pathname = "/" + encodeURIComponent(passage)
+    apiURL.searchParams.set("translation", "rv1909")
 
-    // Consumimos la API usando nuestra función blindada de node
-    const externalData = await secureGetRequest(urlCompleta)
+    // Llamamos a la API convirtiendo la URL a string de forma controlada
+    const externalData = await secureGetRequest(apiURL.toString())
 
     const formattedData = {
       reference: bookParam + " " + chapter + (verse ? ":" + verse : ""),
