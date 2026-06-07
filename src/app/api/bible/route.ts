@@ -4,25 +4,26 @@ import https from 'https'
 const cache = new Map<string, { data: any; timestamp: number }>()
 const CACHE_TTL = 10 * 60 * 1000 
 
+// Cambiamos los códigos a los que usa la nueva API (api.getbible.net)
 const bibleBooksMap: Record<string, string> = {
-  "Génesis": "genesis", "Éxodo": "exodus", "Levítico": "leviticus", "Números": "numbers",
-  "Deuteronomio": "deuteronomy", "Josué": "joshua", "Jueces": "judges", "Rut": "ruth",
-  "1 Samuel": "1 samuel", "2 Samuel": "2 samuel", "1 Reyes": "1 kings", "2 Reyes": "2 kings", // Corregido: kings en lugar de reyes
-  "1 Crónicas": "1 chronicles", "2 Crónicas": "2 chronicles", "Esdras": "ezra", "Nehemías": "nehemiah",
-  "Ester": "esther", "Job": "job", "Salmos": "psalms", "Proverbios": "proverbs",
-  "Eclesiastés": "ecclesiastes", "Cantares": "song of solomon", "Isaías": "isaiah", "Jeremías": "jeremiah",
-  "Lamentaciones": "lamentations", "Ezequiel": "ezekiel", "Daniel": "daniel", "Oseas": "hosea",
-  "Joel": "joel", "Amós": "amos", "Abdías": "obadiah", "Jonás": "jonah", "Miqueas": "micah",
-  "Nahúm": "nahum", "Habacuc": "habakkuk", "Sofonías": "zephaniah", "Hageo": "haggai",
-  "Zacarías": "zechariah", "Malaquías": "malachi",
-  "Mateo": "matthew", "Marcos": "mark", "Lucas": "luke", "Juan": "john",
-  "Hechos": "acts", "Romanos": "romans", "1 Corintios": "1 corinthians", "2 Corintios": "2 corinthians",
-  "Gálatas": "galatians", "Efesios": "ephesians", "Filipenses": "philippians", "Colosenses": "colossians",
-  "1 Tesalonicenses": "1 thessalonians", "2 Tesalonicenses": "2 thessalonians", // <-- CORREGIDO AQUÍ
-  "1 Timoteo": "1 timothy", "2 Timoteo": "2 timothy",
-  "Tito": "titus", "Filemón": "philemon", "Hebreos": "hebrews", "Santiago": "james",
-  "1 Pedro": "1 peter", "2 Pedro": "2 peter", "1 Juan": "1 john", "2 Juan": "2 john",
-  "3 Juan": "3 john", "Judas": "jude", "Apocalipsis": "revelation"
+  "Génesis": "Gen", "Éxodo": "Exod", "Levítico": "Lev", "Números": "Num",
+  "Deuteronomio": "Deut", "Josué": "Josh", "Jueces": "Judg", "Rut": "Ruth",
+  "1 Samuel": "1Sam", "2 Samuel": "2Sam", "1 Reyes": "1Kgs", "2 Reyes": "2Kgs",
+  "1 Crónicas": "1Chr", "2 Crónicas": "2Chr", "Esdras": "Ezra", "Nehemías": "Neh",
+  "Ester": "Esth", "Job": "Job", "Salmos": "Ps", "Proverbios": "Prov",
+  "Eclesiastés": "Eccl", "Cantares": "Song", "Isaías": "Isa", "Jeremías": "Jer",
+  "Lamentaciones": "Lam", "Ezequiel": "Ezek", "Daniel": "Dan", "Oseas": "Hos",
+  "Joel": "Joel", "Amós": "Amos", "Abdías": "Obad", "Jonás": "Jonah", "Miqueas": "Mic",
+  "Nahúm": "Nah", "Habacuc": "Hab", "Sofonías": "Zeph", "Hageo": "Hag",
+  "Zacarías": "Zech", "Malaquías": "Mal",
+  "Mateo": "Matt", "Marcos": "Mark", "Lucas": "Luke", "Juan": "John",
+  "Hechos": "Acts", "Romanos": "Rom", "1 Corintios": "1Cor", "2 Corintios": "2Cor",
+  "Gálatas": "Gal", "Efesios": "Eph", "Filipenses": "Phil", "Colosenses": "Col",
+  "1 Tesalonicenses": "1Thess", "2 Tesalonicenses": "2Thess",
+  "1 Timoteo": "1Tim", "2 Timoteo": "2Tim",
+  "Tito": "Titus", "Filemón": "Phlm", "Hebreos": "Heb", "Santiago": "James",
+  "1 Pedro": "1Pet", "2 Pedro": "2Pet", "1 Juan": "1John", "2 Juan": "2John",
+  "3 Juan": "3John", "Judas": "Jude", "Apocalipsis": "Rev"
 }
 
 function secureGetRequest(url: string): Promise<any> {
@@ -67,27 +68,35 @@ export async function GET(request: NextRequest) {
       return NextResponse.json(cached.data)
     }
 
-    const apiURL = new URL("https://bible-api.com")
-    const passage = verse ? `${bookClean} ${chapter}:${verse}` : `${bookClean} ${chapter}`
-    apiURL.pathname = "/" + encodeURIComponent(passage)
-    
-    // CAMBIO PRINCIPAL: Cambiamos "web" (inglés) por "valera" (español)
-    apiURL.searchParams.set("translation", "valera")
+    // NUEVA API: api.getbible.net - Usamos 'rva' que es Reina-Valera Antigua
+    const apiURL = `https://api.getbible.net/v2/rva/${bookClean}/${chapter}.json`
 
-    const externalData = await secureGetRequest(apiURL.toString())
+    const externalData = await secureGetRequest(apiURL)
 
+    // La estructura de getbible es: { book: [{ chapter: { "1": { verse_nr: 1, verse: "texto" } } }] }
+    const chapterData = externalData.book[0].chapter
+    let versesArray = Object.values(chapterData) as any[]
+
+    // Si el usuario pide un versículo específico, lo filtramos
+    if (verse) {
+      versesArray = versesArray.filter(v => String(v.verse_nr) === verse)
+    }
+
+    const fullText = versesArray.map(v => v.verse).join(" ")
+
+    // Mantenemos exactamente el mismo formato de salida para que tu frontend no falle
     const formattedData = {
       reference: bookParam + " " + chapter + (verse ? ":" + verse : ""),
-      verses: externalData.verses.map((v: any) => ({
-        book_id: externalData.translation_id,
+      verses: versesArray.map((v: any) => ({
+        book_id: "rva",
         book_name: bookParam,
-        chapter: v.chapter,
-        verse: v.verse,
-        text: v.text.trim()
+        chapter: Number(chapter),
+        verse: Number(v.verse_nr),
+        text: v.verse.trim()
       })),
-      text: externalData.text,
-      translation_id: "valera", // Actualizado
-      translation_name: "Reina-Valera 1909 (Español)" // Nombre real de la traducción
+      text: fullText,
+      translation_id: "rva",
+      translation_name: "Reina-Valera Antigua (Español)"
     }
 
     cache.set(cacheKey, { data: formattedData, timestamp: Date.now() })
