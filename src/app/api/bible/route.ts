@@ -7,7 +7,7 @@ const CACHE_TTL = 10 * 60 * 1000
 const bibleBooksMap: Record<string, string> = {
   "Génesis": "genesis", "Éxodo": "exodus", "Levítico": "leviticus", "Números": "numbers",
   "Deuteronomio": "deuteronomy", "Josué": "joshua", "Jueces": "judges", "Rut": "ruth",
-  "1 Samuel": "1 samuel", "2 Samuel": "2 samuel", "1 Reyes": "1 reyes", "2 Reyes": "2 reyes",
+  "1 Samuel": "1 samuel", "2 Samuel": "2 samuel", "1 Reyes": "1 kings", "2 Reyes": "2 kings", // Corregido: kings en lugar de reyes
   "1 Crónicas": "1 chronicles", "2 Crónicas": "2 chronicles", "Esdras": "ezra", "Nehemías": "nehemiah",
   "Ester": "esther", "Job": "job", "Salmos": "psalms", "Proverbios": "proverbs",
   "Eclesiastés": "ecclesiastes", "Cantares": "song of solomon", "Isaías": "isaiah", "Jeremías": "jeremiah",
@@ -18,7 +18,8 @@ const bibleBooksMap: Record<string, string> = {
   "Mateo": "matthew", "Marcos": "mark", "Lucas": "luke", "Juan": "john",
   "Hechos": "acts", "Romanos": "romans", "1 Corintios": "1 corinthians", "2 Corintios": "2 corinthians",
   "Gálatas": "galatians", "Efesios": "ephesians", "Filipenses": "philippians", "Colosenses": "colossians",
-  "1 Tesalonicenses": "1 samuel", "2 Tesalonicenses": "2 samuel", "1 Timoteo": "1 timothy", "2 Timoteo": "2 timothy",
+  "1 Tesalonicenses": "1 thessalonians", "2 Tesalonicenses": "2 thessalonians", // <-- CORREGIDO AQUÍ
+  "1 Timoteo": "1 timothy", "2 Timoteo": "2 timothy",
   "Tito": "titus", "Filemón": "philemon", "Hebreos": "hebrews", "Santiago": "james",
   "1 Pedro": "1 peter", "2 Pedro": "2 peter", "1 Juan": "1 john", "2 Juan": "2 john",
   "3 Juan": "3 john", "Judas": "jude", "Apocalipsis": "revelation"
@@ -70,8 +71,8 @@ export async function GET(request: NextRequest) {
     const passage = verse ? `${bookClean} ${chapter}:${verse}` : `${bookClean} ${chapter}`
     apiURL.pathname = "/" + encodeURIComponent(passage)
     
-    // Corregido: Aquí le indicamos de forma limpia usar la traducción por defecto de la API externa
-    apiURL.searchParams.set("translation", "web")
+    // CAMBIO PRINCIPAL: Cambiamos "web" (inglés) por "valera" (español)
+    apiURL.searchParams.set("translation", "valera")
 
     const externalData = await secureGetRequest(apiURL.toString())
 
@@ -85,8 +86,8 @@ export async function GET(request: NextRequest) {
         text: v.text.trim()
       })),
       text: externalData.text,
-      translation_id: "web",
-      translation_name: "Biblia de Estudio Reina-Valera (Español)"
+      translation_id: "valera", // Actualizado
+      translation_name: "Reina-Valera 1909 (Español)" // Nombre real de la traducción
     }
 
     cache.set(cacheKey, { data: formattedData, timestamp: Date.now() })
