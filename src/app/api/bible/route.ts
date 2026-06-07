@@ -18,7 +18,7 @@ const bibleBooksMap: Record<string, string> = {
   "Mateo": "matthew", "Marcos": "mark", "Lucas": "luke", "Juan": "john",
   "Hechos": "acts", "Romanos": "romans", "1 Corintios": "1 corinthians", "2 Corintios": "2 corinthians",
   "Gálatas": "galatians", "Efesios": "ephesians", "Filipenses": "philippians", "Colosenses": "colossians",
-  "1 Tesalonicenses": "1 Any", "2 Tesalonicenses": "2 Any", "1 Timoteo": "1 timothy", "2 Timoteo": "2 timothy",
+  "1 Tesalonicenses": "1 samuel", "2 Tesalonicenses": "2 samuel", "1 Timoteo": "1 timothy", "2 Timoteo": "2 timothy",
   "Tito": "titus", "Filemón": "philemon", "Hebreos": "hebrews", "Santiago": "james",
   "1 Pedro": "1 peter", "2 Pedro": "2 peter", "1 Juan": "1 john", "2 Juan": "2 john",
   "3 Juan": "3 john", "Judas": "jude", "Apocalipsis": "revelation"
@@ -49,14 +49,18 @@ function secureGetRequest(url: string): Promise<any> {
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url)
-    const bookParam = searchParams.get('book')
+    const rawBook = searchParams.get('book')
     const chapter = searchParams.get('chapter') || '1'
     const verse = searchParams.get('verse')
 
-    if (!bookParam) {
+    if (!rawBook) {
       return NextResponse.json({ error: 'El parámetro "book" es requerido' }, { status: 400 })
     }
 
+    // CLAVE: Decodificamos el nombre del libro (ej: G%C3%A9nesis -> Génesis) antes de mapearlo
+    const bookParam = decodeURIComponent(rawBook)
+
+    // Buscamos en el diccionario usando el nombre real decodificado
     const bookClean = bibleBooksMap[bookParam] || bookParam.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "")
     
     const cacheKey = `${bookClean}:${chapter}:${verse || 'all'}`
@@ -65,7 +69,6 @@ export async function GET(request: NextRequest) {
       return NextResponse.json(cached.data)
     }
 
-    // Formato exacto de URL sin signos más (+) conflictivos que daban 404
     const apiURL = new URL("https://bible-api.com")
     const passage = verse ? `${bookClean} ${chapter}:${verse}` : `${bookClean} ${chapter}`
     apiURL.pathname = "/" + encodeURIComponent(passage)
