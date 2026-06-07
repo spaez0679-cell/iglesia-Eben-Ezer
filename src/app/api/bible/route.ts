@@ -57,10 +57,10 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'El parámetro "book" es requerido' }, { status: 400 })
     }
 
-    // CLAVE: Decodificamos el nombre del libro (ej: G%C3%A9nesis -> Génesis) antes de mapearlo
+    // Convertimos G%C3%A9nesis de nuevo a "Génesis" de forma limpia
     const bookParam = decodeURIComponent(rawBook)
 
-    // Buscamos en el diccionario usando el nombre real decodificado
+    // Buscamos en el diccionario el libro decodificado
     const bookClean = bibleBooksMap[bookParam] || bookParam.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "")
     
     const cacheKey = `${bookClean}:${chapter}:${verse || 'all'}`
