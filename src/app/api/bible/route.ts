@@ -1,10 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
-import https from 'https'
 
 const cache = new Map<string, { data: any; timestamp: number }>()
 const CACHE_TTL = 10 * 60 * 1000 
 
-// Cambiamos los códigos a los que usa la nueva API (api.getbible.net)
+// Códigos de libros para la API de Bolls.life
 const bibleBooksMap: Record<string, string> = {
   "Génesis": "Gen", "Éxodo": "Exod", "Levítico": "Lev", "Números": "Num",
   "Deuteronomio": "Deut", "Josué": "Josh", "Jueces": "Judg", "Rut": "Ruth",
@@ -24,28 +23,6 @@ const bibleBooksMap: Record<string, string> = {
   "Tito": "Titus", "Filemón": "Phlm", "Hebreos": "Heb", "Santiago": "James",
   "1 Pedro": "1Pet", "2 Pedro": "2Pet", "1 Juan": "1John", "2 Juan": "2John",
   "3 Juan": "3John", "Judas": "Jude", "Apocalipsis": "Rev"
-}
-
-function secureGetRequest(url: string): Promise<any> {
-  return new Promise((resolve, reject) => {
-    https.get(url, (res) => {
-      let data = ''
-      res.on('data', (chunk) => { data += chunk })
-      res.on('end', () => {
-        if (res.statusCode && res.statusCode >= 200 && res.statusCode < 300) {
-          try {
-            resolve(JSON.parse(data))
-          } catch (e) {
-            reject(new Error("Error al procesar JSON de la API"))
-          }
-        } else {
-          reject(new Error(`API respondió con estado: ${res.statusCode}`))
-        }
-      })
-    }).on('error', (err) => {
-      reject(err)
-    })
-  })
 }
 
 export async function GET(request: NextRequest) {
@@ -68,31 +45,37 @@ export async function GET(request: NextRequest) {
       return NextResponse.json(cached.data)
     }
 
-    // NUEVA API: api.getbible.net - Usamos 'rva' que es Reina-Valera Antigua
-    const apiURL = `https://api.getbible.net/v2/rva/${bookClean}/${chapter}.json`
+    // Usamos Bolls.life - RVA es Reina Valera Antigua. Si prefieres la 1960, cambia RVA por RVR60
+    const apiURL = `https://bolls.life/get-text/RVA/${bookClean}/${chapter}/`
 
-    const externalData = await secureGetRequest(apiURL)
+    const response = await fetch(apiURL)
+    if (!response.ok) {
+      throw new Error(`API externa respondió con estado: ${response.status}`)
+    }
+    
+    const externalData = await response.json()
 
-    // La estructura de getbible es: { book: [{ chapter: { "1": { verse_nr: 1, verse: "texto" } } }] }
-    const chapterData = externalData.book[0].chapter
-    let versesArray = Object.values(chapterData) as any[]
-
-    // Si el usuario pide un versículo específico, lo filtramos
-    if (verse) {
-      versesArray = versesArray.filter(v => String(v.verse_nr) === verse)
+    if (!Array.isArray(externalData) || externalData.length === 0) {
+       throw new Error("La API no devolvió versículos para este pasaje")
     }
 
-    const fullText = versesArray.map(v => v.verse).join(" ")
+    // Si el usuario pide un versículo específico, lo filtramos
+    let versesArray = externalData
+    if (verse) {
+      versesArray = externalData.filter((v: any) => String(v.verse) === verse)
+    }
 
-    // Mantenemos exactamente el mismo formato de salida para que tu frontend no falle
+    const fullText = versesArray.map((v: any) => v.text).join(" ")
+
+    // Mantenemos exactamente el mismo formato de salida para que tu frontend no se rompa
     const formattedData = {
       reference: bookParam + " " + chapter + (verse ? ":" + verse : ""),
       verses: versesArray.map((v: any) => ({
         book_id: "rva",
         book_name: bookParam,
         chapter: Number(chapter),
-        verse: Number(v.verse_nr),
-        text: v.verse.trim()
+        verse: v.verse,
+        text: v.text.trim()
       })),
       text: fullText,
       translation_id: "rva",
