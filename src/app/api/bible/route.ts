@@ -48,7 +48,13 @@ export async function GET(request: NextRequest) {
     // Usamos Bolls.life - RVA es Reina Valera Antigua. Si prefieres la 1960, cambia RVA por RVR60
     const apiURL = `https://bolls.life/get-text/RVA/${bookClean}/${chapter}/`
 
-    const response = await fetch(apiURL)
+    // AQUÍ ESTÁ EL CAMBIO: Le agregamos el 'User-Agent' para que Vercel no sea bloqueado
+    const response = await fetch(apiURL, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+      }
+    })
+
     if (!response.ok) {
       throw new Error(`API externa respondió con estado: ${response.status}`)
     }
