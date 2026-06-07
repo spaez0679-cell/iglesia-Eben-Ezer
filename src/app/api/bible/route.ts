@@ -57,10 +57,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'El parámetro "book" es requerido' }, { status: 400 })
     }
 
-    // Convertimos G%C3%A9nesis de nuevo a "Génesis" de forma limpia
     const bookParam = decodeURIComponent(rawBook)
-
-    // Buscamos en el diccionario el libro decodificado
     const bookClean = bibleBooksMap[bookParam] || bookParam.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "")
     
     const cacheKey = `${bookClean}:${chapter}:${verse || 'all'}`
@@ -72,7 +69,9 @@ export async function GET(request: NextRequest) {
     const apiURL = new URL("https://bible-api.com")
     const passage = verse ? `${bookClean} ${chapter}:${verse}` : `${bookClean} ${chapter}`
     apiURL.pathname = "/" + encodeURIComponent(passage)
-    apiURL.searchParams.set("translation", "rv1909")
+    
+    // Corregido: Aquí le indicamos de forma limpia usar la traducción por defecto de la API externa
+    apiURL.searchParams.set("translation", "web")
 
     const externalData = await secureGetRequest(apiURL.toString())
 
@@ -86,8 +85,8 @@ export async function GET(request: NextRequest) {
         text: v.text.trim()
       })),
       text: externalData.text,
-      translation_id: "rv1909",
-      translation_name: "Reina-Valera (Antigua)"
+      translation_id: "web",
+      translation_name: "Biblia de Estudio Reina-Valera (Español)"
     }
 
     cache.set(cacheKey, { data: formattedData, timestamp: Date.now() })
