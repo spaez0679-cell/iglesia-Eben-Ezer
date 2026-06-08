@@ -50,7 +50,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Usamos RVR60 (Reina Valera 1960)
-    const apiURL = `https://api.getbible.net/v2/RVR60/${bookNumber}/${chapter}.json`
+    const apiURL = `https://api.getbible.net/v2/rvr1960/${bookNumber}/${chapter}.json`
 
     const response = await fetch(apiURL, {
       headers: {
@@ -92,7 +92,7 @@ export async function GET(request: NextRequest) {
         text: v.text.trim()
       })),
       text: fullText,
-      translation_id: "RVR60",
+      translation_id: "rvr1960",
       translation_name: "Reina-Valera 1960 (Español)"
     }
 
