@@ -48,7 +48,7 @@ export async function GET(request: NextRequest) {
     // Volvemos a bible-api.com porque NO bloquea a Vercel. 
     // Usamos "valera" para español (Reina-Valera 1909)
     const passage = verse ? `${bookClean} ${chapter}:${verse}` : `${bookClean} ${chapter}`
-    const apiURL = `https://bible-api.com/${encodeURIComponent(passage)}?translation=valera`
+    const apiURL = `https://bible-api.com/${encodeURIComponent(passage)}?translation=RVA`
 
     const response = await fetch(apiURL, {
       headers: {
