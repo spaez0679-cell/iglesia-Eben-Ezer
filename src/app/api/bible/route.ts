@@ -49,8 +49,8 @@ export async function GET(request: NextRequest) {
       return NextResponse.json(cached.data)
     }
 
-    // API getbible.net - RVA es Reina Valera Antigua. Le pasamos el NÚMERO del libro
-    const apiURL = `https://api.getbible.net/v2/RVA60/${bookNumber}/${chapter}.json`
+    // Usamos RVR60 (Reina Valera 1960)
+    const apiURL = `https://api.getbible.net/v2/RVR60/${bookNumber}/${chapter}.json`
 
     const response = await fetch(apiURL, {
       headers: {
@@ -85,14 +85,14 @@ export async function GET(request: NextRequest) {
     const formattedData = {
       reference: bookParam + " " + chapter + (verse ? ":" + verse : ""),
       verses: versesArray.map((v: any) => ({
-        book_id: "rva",
+        book_id: "RVR60",
         book_name: bookParam,
         chapter: Number(chapter),
         verse: v.verse,
         text: v.text.trim()
       })),
       text: fullText,
-      translation_id: "rva",
+      translation_id: "RVR60",
       translation_name: "Reina-Valera 1960 (Español)"
     }
 
