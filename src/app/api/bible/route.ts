@@ -3,26 +3,26 @@ import { NextRequest, NextResponse } from 'next/server'
 const cache = new Map<string, { data: any; timestamp: number }>()
 const CACHE_TTL = 10 * 60 * 1000 
 
-// Códigos de libros para la API de Bolls.life
+// Usamos los nombres en inglés porque bible-api.com los requiere así, incluso para la versión en español
 const bibleBooksMap: Record<string, string> = {
-  "Génesis": "Gen", "Éxodo": "Exod", "Levítico": "Lev", "Números": "Num",
-  "Deuteronomio": "Deut", "Josué": "Josh", "Jueces": "Judg", "Rut": "Ruth",
-  "1 Samuel": "1Sam", "2 Samuel": "2Sam", "1 Reyes": "1Kgs", "2 Reyes": "2Kgs",
-  "1 Crónicas": "1Chr", "2 Crónicas": "2Chr", "Esdras": "Ezra", "Nehemías": "Neh",
-  "Ester": "Esth", "Job": "Job", "Salmos": "Ps", "Proverbios": "Prov",
-  "Eclesiastés": "Eccl", "Cantares": "Song", "Isaías": "Isa", "Jeremías": "Jer",
-  "Lamentaciones": "Lam", "Ezequiel": "Ezek", "Daniel": "Dan", "Oseas": "Hos",
-  "Joel": "Joel", "Amós": "Amos", "Abdías": "Obad", "Jonás": "Jonah", "Miqueas": "Mic",
-  "Nahúm": "Nah", "Habacuc": "Hab", "Sofonías": "Zeph", "Hageo": "Hag",
-  "Zacarías": "Zech", "Malaquías": "Mal",
-  "Mateo": "Matt", "Marcos": "Mark", "Lucas": "Luke", "Juan": "John",
-  "Hechos": "Acts", "Romanos": "Rom", "1 Corintios": "1Cor", "2 Corintios": "2Cor",
-  "Gálatas": "Gal", "Efesios": "Eph", "Filipenses": "Phil", "Colosenses": "Col",
-  "1 Tesalonicenses": "1Thess", "2 Tesalonicenses": "2Thess",
-  "1 Timoteo": "1Tim", "2 Timoteo": "2Tim",
-  "Tito": "Titus", "Filemón": "Phlm", "Hebreos": "Heb", "Santiago": "James",
-  "1 Pedro": "1Pet", "2 Pedro": "2Pet", "1 Juan": "1John", "2 Juan": "2John",
-  "3 Juan": "3John", "Judas": "Jude", "Apocalipsis": "Rev"
+  "Génesis": "genesis", "Éxodo": "exodus", "Levítico": "leviticus", "Números": "numbers",
+  "Deuteronomio": "deuteronomy", "Josué": "joshua", "Jueces": "judges", "Rut": "ruth",
+  "1 Samuel": "1 samuel", "2 Samuel": "2 samuel", "1 Reyes": "1 kings", "2 Reyes": "2 kings",
+  "1 Crónicas": "1 chronicles", "2 Crónicas": "2 chronicles", "Esdras": "ezra", "Nehemías": "nehemiah",
+  "Ester": "esther", "Job": "job", "Salmos": "psalms", "Proverbios": "proverbs",
+  "Eclesiastés": "ecclesiastes", "Cantares": "song of solomon", "Isaías": "isaiah", "Jeremías": "jeremiah",
+  "Lamentaciones": "lamentations", "Ezequiel": "ezekiel", "Daniel": "daniel", "Oseas": "hosea",
+  "Joel": "joel", "Amós": "amos", "Abdías": "obadiah", "Jonás": "jonah", "Miqueas": "micah",
+  "Nahúm": "nahum", "Habacuc": "habakkuk", "Sofonías": "zephaniah", "Hageo": "haggai",
+  "Zacarías": "zechariah", "Malaquías": "malachi",
+  "Mateo": "matthew", "Marcos": "mark", "Lucas": "luke", "Juan": "john",
+  "Hechos": "acts", "Romanos": "romans", "1 Corintios": "1 corinthians", "2 Corintios": "2 corinthians",
+  "Gálatas": "galatians", "Efesios": "ephesians", "Filipenses": "philippians", "Colosenses": "colossians",
+  "1 Tesalonicenses": "1 thessalonians", "2 Tesalonicenses": "2 thessalonians",
+  "1 Timoteo": "1 timothy", "2 Timoteo": "2 timothy",
+  "Tito": "titus", "Filemón": "philemon", "Hebreos": "hebrews", "Santiago": "james",
+  "1 Pedro": "1 peter", "2 Pedro": "2 peter", "1 Juan": "1 john", "2 Juan": "2 john",
+  "3 Juan": "3 john", "Judas": "jude", "Apocalipsis": "revelation"
 }
 
 export async function GET(request: NextRequest) {
@@ -45,14 +45,15 @@ export async function GET(request: NextRequest) {
       return NextResponse.json(cached.data)
     }
 
-    // Usamos Bolls.life - RVA es Reina Valera Antigua. Si prefieres la 1960, cambia RVA por RVR60
-    const apiURL = `https://bolls.life/get-text/RVA/${bookClean}/${chapter}/`
+    // Volvemos a bible-api.com porque NO bloquea a Vercel. 
+    // Usamos "valera" para español (Reina-Valera 1909)
+    const passage = verse ? `${bookClean} ${chapter}:${verse}` : `${bookClean} ${chapter}`
+    const apiURL = `https://bible-api.com/${encodeURIComponent(passage)}?translation=valera`
 
-        // AQUÍ ESTÁ EL CAMBIO: Le agregamos el 'User-Agent' y 'Accept' para que Vercel no sea bloqueado
     const response = await fetch(apiURL, {
       headers: {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-        'Accept': 'application/json' // Esto le dice a la API que queremos la Biblia, no su página de seguridad
+        'Accept': 'application/json'
       }
     })
 
@@ -62,30 +63,24 @@ export async function GET(request: NextRequest) {
     
     const externalData = await response.json()
 
-    if (!Array.isArray(externalData) || externalData.length === 0) {
+    if (!externalData.verses || externalData.verses.length === 0) {
        throw new Error("La API no devolvió versículos para este pasaje")
     }
 
-    // Si el usuario pide un versículo específico, lo filtramos
-    let versesArray = externalData
-    if (verse) {
-      versesArray = externalData.filter((v: any) => String(v.verse) === verse)
-    }
+    const fullText = externalData.verses.map((v: any) => v.text).join(" ")
 
-    const fullText = versesArray.map((v: any) => v.text).join(" ")
-
-    // Mantenemos exactamente el mismo formato de salida para que tu frontend no se rompa
+    // Mantenemos exactamente el mismo formato que tu frontend espera
     const formattedData = {
       reference: bookParam + " " + chapter + (verse ? ":" + verse : ""),
-      verses: versesArray.map((v: any) => ({
-        book_id: "rva",
+      verses: externalData.verses.map((v: any) => ({
+        book_id: "valera",
         book_name: bookParam,
-        chapter: Number(chapter),
+        chapter: v.chapter,
         verse: v.verse,
         text: v.text.trim()
       })),
       text: fullText,
-      translation_id: "rva",
+      translation_id: "valera",
       translation_name: "Reina-Valera Antigua (Español)"
     }
 
@@ -102,4 +97,4 @@ export async function GET(request: NextRequest) {
       { status: 500 }
     )
   }
-}
+}  
