@@ -43,22 +43,19 @@ export async function GET(request: NextRequest) {
        return NextResponse.json({ error: 'Libro no encontrado' }, { status: 400 })
     }
     
-    const cacheKey = `${bookNumber}:${chapter}:${verse || 'all'}`
+    const cacheKey = `rvr1960:${bookNumber}:${chapter}:${verse || 'all'}`
     const cached = cache.get(cacheKey)
     if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
       return NextResponse.json(cached.data)
     }
 
-    // API getbible.net - RVR1960 es Reina Valera 1960
-    const apiURL = `https://api.getbible.net/v2/RVR1960/${bookNumber}/${chapter}.json`
+    // API getbible.net - rvr1960 en MINÚSCULAS
+    const apiURL = `https://api.getbible.net/v2/rvr1960/${bookNumber}/${chapter}.json`
 
-    // Disfraz completo para que Vercel no sea bloqueado
     const response = await fetch(apiURL, {
       headers: {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-        'Accept': 'application/json',
-        'Accept-Language': 'es-ES,es;q=0.9',
-        'Cache-Control': 'no-cache'
+        'Accept': 'application/json'
       }
     })
 
@@ -68,14 +65,19 @@ export async function GET(request: NextRequest) {
     
     const externalData = await response.json()
 
-    // Extraer los versículos de la estructura de getbible
-    let versesArray = []
-    if (externalData.book && externalData.book[0] && externalData.book[0].chapters && externalData.book[0].chapters[0]) {
-        versesArray = externalData.book[0].chapters[0].verses
+    // AQUÍ ESTABA EL ERROR ANTERIOR: La API guarda los versículos dentro de un OBJETO, no de un ARRAY.
+    // Se accede así: externalData.book[0].chapters[0].chapter
+    const chapterData = externalData?.book?.[0]?.chapters?.[0]?.chapter
+    
+    if (!chapterData) {
+       throw new Error("La API no devolvió la estructura de capítulos esperada")
     }
 
+    // Convertimos el objeto de versículos a un array para poder procesarlo
+    let versesArray = Object.values(chapterData) as any[]
+
     if (versesArray.length === 0) {
-       throw new Error("La API no devolvió versículos para este pasaje")
+       throw new Error("No se encontraron versículos en el capítulo")
     }
 
     // Si el usuario pide un versículo específico, lo filtramos
@@ -85,18 +87,18 @@ export async function GET(request: NextRequest) {
 
     const fullText = versesArray.map((v: any) => v.text).join(" ")
 
-    // Formato que tu frontend espera
+    // Mantenemos el formato que tu frontend espera
     const formattedData = {
       reference: bookParam + " " + chapter + (verse ? ":" + verse : ""),
       verses: versesArray.map((v: any) => ({
-        book_id: "RVR1960",
+        book_id: "rvr1960",
         book_name: bookParam,
         chapter: Number(chapter),
         verse: v.verse,
         text: v.text.trim()
       })),
       text: fullText,
-      translation_id: "RVR1960",
+      translation_id: "rvr1960",
       translation_name: "Reina-Valera 1960 (Español)"
     }
 
