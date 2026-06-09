@@ -3,26 +3,26 @@ import { NextRequest, NextResponse } from 'next/server'
 const cache = new Map<string, { data: any; timestamp: number }>()
 const CACHE_TTL = 10 * 60 * 1000 
 
-// BibleGateway prefiere los nombres de los libros directamente para su consulta GraphQL
+// Los números de los libros para la API de getbible
 const bibleBooksMap: Record<string, string> = {
-  "Génesis": "Genesis", "Éxodo": "Exodus", "Levítico": "Leviticus", "Números": "Numbers",
-  "Deuteronomio": "Deuteronomy", "Josué": "Joshua", "Jueces": "Judges", "Rut": "Ruth",
-  "1 Samuel": "1 Samuel", "2 Samuel": "2 Samuel", "1 Reyes": "1 Reyes", "2 Reyes": "2 Reyes",
-  "1 Crónicas": "1 Chronicles", "2 Crónicas": "2 Chronicles", "Esdras": "Ezra", "Nehemías": "Nehemiah",
-  "Ester": "Esther", "Job": "Job", "Salmos": "Psalms", "Proverbios": "Proverbs",
-  "Eclesiastés": "Ecclesiastes", "Cantares": "Song of Solomon", "Isaías": "Isaiah", "Jeremías": "Jeremiah",
-  "Lamentaciones": "Lamentations", "Ezequiel": "Ezekiel", "Daniel": "Daniel", "Oseas": "Hosea",
-  "Joel": "Joel", "Amós": "Amos", "Abdías": "Obadiah", "Jonás": "Jonah", "Miqueas": "Micah",
-  "Nahúm": "Nahum", "Habacuc": "Habakkuk", "Sofonías": "Zephaniah", "Hageo": "Haggai",
-  "Zacarías": "Zechariah", "Malaquías": "Malachi",
-  "Mateo": "Matthew", "Marcos": "Mark", "Lucas": "Luke", "Juan": "John",
-  "Hechos": "Acts", "Romanos": "Romans", "1 Corintios": "1 Corinthians", "2 Corintios": "2 Corinthians",
-  "Gálatas": "Galatians", "Efesios": "Ephesians", "Filipenses": "Philippians", "Colosenses": "Colossians",
-  "1 Tesalonicenses": "1 Thessalonians", "2 Tesalonicenses": "2 Thessalonians",
-  "1 Timoteo": "1 Timothy", "2 Timoteo": "2 Timothy",
-  "Tito": "Titus", "Filemón": "Philemon", "Hebreos": "Hebrews", "Santiago": "James",
-  "1 Pedro": "1 Peter", "2 Pedro": "2 Peter", "1 Juan": "1 John", "2 Juan": "2 John",
-  "3 Juan": "3 John", "Judas": "Jude", "Apocalipsis": "Revelation"
+  "Génesis": "1", "Éxodo": "2", "Levítico": "3", "Números": "4",
+  "Deuteronomio": "5", "Josué": "6", "Jueces": "7", "Rut": "8",
+  "1 Samuel": "9", "2 Samuel": "10", "1 Reyes": "11", "2 Reyes": "12",
+  "1 Crónicas": "13", "2 Crónicas": "14", "Esdras": "15", "Nehemías": "16",
+  "Ester": "17", "Job": "18", "Salmos": "19", "Proverbios": "20",
+  "Eclesiastés": "21", "Cantares": "22", "Isaías": "23", "Jeremías": "24",
+  "Lamentaciones": "25", "Ezequiel": "26", "Daniel": "27", "Oseas": "28",
+  "Joel": "29", "Amós": "30", "Abdías": "31", "Jonás": "32", "Miqueas": "33",
+  "Nahúm": "34", "Habacuc": "35", "Sofonías": "36", "Hageo": "37",
+  "Zacarías": "38", "Malaquías": "39",
+  "Mateo": "40", "Marcos": "41", "Lucas": "42", "Juan": "43",
+  "Hechos": "44", "Romanos": "45", "1 Corintios": "46", "2 Corintios": "47",
+  "Gálatas": "48", "Efesios": "49", "Filipenses": "50", "Colosenses": "51",
+  "1 Tesalonicenses": "52", "2 Tesalonicenses": "53",
+  "1 Timoteo": "54", "2 Timoteo": "55",
+  "Tito": "56", "Filemón": "57", "Hebreos": "58", "Santiago": "59",
+  "1 Pedro": "60", "2 Pedro": "61", "1 Juan": "62", "2 Juan": "63",
+  "3 Juan": "64", "Judas": "65", "Apocalipsis": "66"
 }
 
 export async function GET(request: NextRequest) {
@@ -37,104 +37,66 @@ export async function GET(request: NextRequest) {
     }
 
     const bookParam = decodeURIComponent(rawBook)
-    // Buscamos el nombre del libro para la API (usamos fallback por si mandan el nombre directo)
-    const bookQueryName = bibleBooksMap[bookParam] || bookParam
+    const bookNumber = bibleBooksMap[bookParam]
     
-    const cacheKey = `${bookQueryName}:${chapter}:${verse || 'all'}`
+    if (!bookNumber) {
+       return NextResponse.json({ error: 'Libro no encontrado' }, { status: 400 })
+    }
+    
+    const cacheKey = `${bookNumber}:${chapter}:${verse || 'all'}`
     const cached = cache.get(cacheKey)
     if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
       return NextResponse.json(cached.data)
     }
 
-    // 1. URL de la API GraphQL corregida
-    const apiURL = 'https://www.biblegateway.com/graphql'
+    // API getbible.net - RVR1960 es Reina Valera 1960
+    const apiURL = `https://api.getbible.net/v2/RVR1960/${bookNumber}/${chapter}.json`
 
-    // 2. Construimos la query exacta que requiere BibleGateway
-    const graphqlQuery = {
-      query: `
-        query PassageQuery($query: String!, $version: String!) {
-          passage(query: $query, version: $version) {
-            content
-            title
-          }
-        }
-      `,
-      variables: {
-        query: `${bookQueryName} ${chapter}`,
-        version: 'RVR1960'
-      }
-    }
-
-    // 3. Hacemos la solicitud POST simulando ser un navegador para evitar bloqueos
+    // Disfraz completo para que Vercel no sea bloqueado
     const response = await fetch(apiURL, {
-      method: 'POST',
       headers: {
-        'Content-Type': 'application/json',
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
         'Accept': 'application/json',
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
-      },
-      body: JSON.stringify(graphqlQuery)
+        'Accept-Language': 'es-ES,es;q=0.9',
+        'Cache-Control': 'no-cache'
+      }
     })
 
     if (!response.ok) {
-      throw new Error(`BibleGateway respondió con estado: ${response.status}`)
+      throw new Error(`API externa respondió con estado: ${response.status}`)
     }
     
     const externalData = await response.json()
-    const htmlContent = externalData?.data?.passage?.content
 
-    if (!htmlContent) {
-       throw new Error("La API no devolvió contenido para este pasaje")
+    // Extraer los versículos de la estructura de getbible
+    let versesArray = []
+    if (externalData.book && externalData.book[0] && externalData.book[0].chapters && externalData.book[0].chapters[0]) {
+        versesArray = externalData.book[0].chapters[0].verses
     }
 
-    // 4. Procesamos el HTML para extraer y separar los versículos limpiamente
-    let versesArray: Array<{ verse: number; text: string }> = []
-    
-    // Expresión regular para buscar los bloques de versículos basados en las clases HTML de BibleGateway
-    const textWithoutNotes = htmlContent.replace(/<span class="chapternum">.*?<\/span>/g, '') // Quita número de capítulo grande
-                                        .replace(/<sup class="crossreference".*?<\/sup>/g, '') // Quita referencias cruzadas
-                                        .replace(/<sup class="footnote".*?<\/sup>/g, '') // Quita notas al pie
-    
-    // Captura patrones comunes de números de versículos estructurados: <span class="versenumber">X </span>Texto
-    const verseRegex = /<span class="versenumber">(\d+).*?<\/span>(.*?)(?=<span class="versenumber">|$)/g
-    let match;
-    
-    while ((match = verseRegex.exec(textWithoutNotes)) !== null) {
-      const vNum = parseInt(match[1], 10)
-      
-      // Línea 101 corregida internamente para evitar bucles o textos vacíos:
-    const vText = match[2].replace(/<[^>]*>/g, '').replace(/\s+/g, ' ').trim()
-
-      if (vText) {
-        versesArray.push({ verse: vNum, text: vText })
-      }
-    }
-
-    // Si la expresión regular falla por cambios de diseño, extraemos todo el texto plano como versículo único
     if (versesArray.length === 0) {
-      const cleanText = textWithoutNotes.replace(/<[^>]*>/g, '').replace(/\s+/g, ' ').trim()
-      versesArray.push({ verse: 1, text: cleanText })
+       throw new Error("La API no devolvió versículos para este pasaje")
     }
 
-    // 5. Si el usuario pide un versículo específico, lo filtramos
+    // Si el usuario pide un versículo específico, lo filtramos
     if (verse) {
-      versesArray = versesArray.filter((v) => String(v.verse) === verse)
+      versesArray = versesArray.filter((v: any) => String(v.verse) === verse)
     }
 
-    const fullText = versesArray.map((v) => v.text).join(" ")
+    const fullText = versesArray.map((v: any) => v.text).join(" ")
 
-    // 6. Mantenemos exactamente tu misma interfaz de respuesta original
+    // Formato que tu frontend espera
     const formattedData = {
       reference: bookParam + " " + chapter + (verse ? ":" + verse : ""),
-      verses: versesArray.map((v) => ({
-        book_id: "RVR60",
+      verses: versesArray.map((v: any) => ({
+        book_id: "RVR1960",
         book_name: bookParam,
         chapter: Number(chapter),
         verse: v.verse,
-        text: v.text
+        text: v.text.trim()
       })),
       text: fullText,
-      translation_id: "rvr1960",
+      translation_id: "RVR1960",
       translation_name: "Reina-Valera 1960 (Español)"
     }
 
@@ -151,4 +113,4 @@ export async function GET(request: NextRequest) {
       { status: 500 }
     )
   }
-}
+} 
