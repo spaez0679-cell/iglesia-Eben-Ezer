@@ -38,15 +38,15 @@ export async function GET(request: NextRequest) {
     const bookParam = decodeURIComponent(rawBook)
     const bookClean = bibleBooksMap[bookParam] || bookParam.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "")
     
-    const cacheKey = `${bookClean}:${chapter}:${verse || 'all'}`
+    const cacheKey = `translated:${bookClean}:${chapter}:${verse || 'all'}`
     const cached = cache.get(cacheKey)
     if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
       return NextResponse.json(cached.data)
     }
 
-    // Usamos el signo + para los espacios, como le gusta a bible-api.com
+    // Usamos la API original en inglés (la única que funciona en Vercel)
     const passage = verse ? `${bookClean}+${chapter}:${verse}` : `${bookClean}+${chapter}`
-    const apiURL = `https://bible-api.com/${passage}?translation=valera`
+    const apiURL = `https://bible-api.com/${passage}?translation=web`
 
     const response = await fetch(apiURL)
 
@@ -60,18 +60,42 @@ export async function GET(request: NextRequest) {
        throw new Error("No se encontraron versículos")
     }
 
+    // Traducimos cada versículo automáticamente usando MyMemory (API gratuita que funciona en Vercel)
+    const translatedVersesPromises = externalData.verses.map(async (v: any) => {
+      try {
+        const translateURL = `https://api.mymemory.translated.net/get?q=${encodeURIComponent(v.text)}&langpair=en|es`
+        const transRes = await fetch(translateURL)
+        const transData = await transRes.json()
+        const translatedText = transData.responseData.translatedText || v.text
+        
+        return {
+          book_id: "es",
+          book_name: bookParam,
+          chapter: v.chapter,
+          verse: v.verse,
+          text: translatedText.trim()
+        }
+      } catch (e) {
+        // Si la traducción falla para un versículo, devolvemos el original
+        return {
+          book_id: "es",
+          book_name: bookParam,
+          chapter: v.chapter,
+          verse: v.verse,
+          text: v.text.trim()
+        }
+      }
+    })
+
+    const translatedVerses = await Promise.all(translatedVersesPromises)
+    const fullText = translatedVerses.map((v: any) => v.text).join(" ")
+
     const formattedData = {
       reference: bookParam + " " + chapter + (verse ? ":" + verse : ""),
-      verses: externalData.verses.map((v: any) => ({
-        book_id: "valera",
-        book_name: bookParam,
-        chapter: v.chapter,
-        verse: v.verse,
-        text: v.text.trim()
-      })),
-      text: externalData.text,
-      translation_id: "valera",
-      translation_name: "Reina-Valera 1909 (Español)"
+      verses: translatedVerses,
+      text: fullText,
+      translation_id: "es",
+      translation_name: "Traducción Automática (Español)"
     }
 
     cache.set(cacheKey, { data: formattedData, timestamp: Date.now() })
@@ -87,4 +111,4 @@ export async function GET(request: NextRequest) {
       { status: 500 }
     )
   }
-} 
+}
