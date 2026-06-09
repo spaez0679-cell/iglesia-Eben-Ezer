@@ -85,6 +85,7 @@ export function BiblePage() {
         : ALL_BOOKS
 
   const chapterNum = parseInt(chapter) || 1
+  const verseNum = parseInt(verse) || 0
 
   const fetchBible = useCallback(
     async (book: string, ch: number, vs?: number) => {
@@ -150,21 +151,23 @@ export function BiblePage() {
     fetchBible(selectedBook, ch, vs)
   }
 
-  const goToPrevChapter = () => {
-    if (chapterNum > 1) {
-      const newChapter = String(chapterNum - 1)
-      setChapter(newChapter)
-      fetchBible(selectedBook, chapterNum - 1, verse ? parseInt(verse) : undefined)
+  // NUEVAS FUNCIONES: Navegación por versículos
+  const goToPrevVerse = () => {
+    let currentVerse = verse ? parseInt(verse) : 1;
+    if (currentVerse > 1) {
+      const newVerse = currentVerse - 1;
+      setVerse(String(newVerse)); // Actualizamos el input visual
+      fetchBible(selectedBook, chapterNum, newVerse);
     }
   }
 
-  const goToNextChapter = () => {
-    if (chapterNum < MAX_CHAPTERS) {
-      const newChapter = String(chapterNum + 1)
-      setChapter(newChapter)
-      fetchBible(selectedBook, chapterNum + 1, verse ? parseInt(verse) : undefined)
-    }
+  const goToNextVerse = () => {
+    let currentVerse = verse ? parseInt(verse) : 0; // Si está vacío, empezamos desde 0 para que el siguiente sea 1
+    const newVerse = currentVerse + 1;
+    setVerse(String(newVerse)); // Actualizamos el input visual
+    fetchBible(selectedBook, chapterNum, newVerse);
   }
+
   return (
     <div className="page-transition pb-20 md:pb-0">
       <section className="gradient-church py-12 sm:py-16">
@@ -288,15 +291,16 @@ export function BiblePage() {
         {bibleData && !loading && (
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }}>
             <div className="mb-6 flex items-center justify-between">
+              {/* BOTÓN ANTERIOR - AHORA ES DE VERSÍCULO */}
               <Button
                 variant="outline"
                 size="sm"
-                onClick={goToPrevChapter}
-                disabled={chapterNum <= 1}
+                onClick={goToPrevVerse}
+                disabled={verseNum <= 1} // Se deshabilita si estamos en el versículo 1 o menos
                 className="border-[#C8E0ED] text-primary hover:bg-[#EAF6FB]"
               >
                 <ChevronLeft className="mr-1 h-4 w-4" />
-                Cap. anterior
+                Vers. anterior
               </Button>
 
               <div className="flex items-center gap-2">
@@ -314,14 +318,14 @@ export function BiblePage() {
                 />
               </div>
 
+              {/* BOTÓN SIGUIENTE - AHORA ES DE VERSÍCULO */}
               <Button
                 variant="outline"
                 size="sm"
-                onClick={goToNextChapter}
-                disabled={chapterNum >= MAX_CHAPTERS}
+                onClick={goToNextVerse}
                 className="border-[#C8E0ED] text-primary hover:bg-[#EAF6FB]"
               >
-                Cap. siguiente
+                Vers. siguiente
                 <ChevronRight className="ml-1 h-4 w-4" />
               </Button>
             </div>
