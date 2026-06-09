@@ -1,6 +1,7 @@
 'use client'
 
-import { Home, BookOpen, Users, Calendar, Book } from 'lucide-react'
+import { useState, useEffect } from 'react'
+import { Home, BookOpen, Users, Calendar, Book, Download } from 'lucide-react'
 import { motion } from 'framer-motion'
 import { useAppStore, type Page } from '@/store'
 
@@ -28,6 +29,27 @@ const navItems: NavItem[] = [
 
 export function MobileNav() {
   const { currentPage, setCurrentPage } = useAppStore()
+  const [installPrompt, setInstallPrompt] = useState<any>(null)
+
+  // Este useEffect detecta cuando el navegador está listo para instalar la app
+  useEffect(() => {
+    const handler = (e: Event) => {
+      e.preventDefault() // Evitamos que el navegador muestre su propio cartel feo
+      setInstallPrompt(e) // Guardamos el evento para usarlo después
+    }
+    window.addEventListener('beforeinstallprompt', handler)
+    return () => window.removeEventListener('beforeinstallprompt', handler)
+  }, [])
+
+  // Esta función se ejecuta cuando el usuario toca "Descargar App"
+  const handleInstallClick = async () => {
+    if (!installPrompt) return
+    installPrompt.prompt() // Mostramos el cartel nativo de instalar
+    const { outcome } = await installPrompt.userChoice
+    if (outcome === 'accepted') {
+      setInstallPrompt(null) // Si la instaló, ocultamos el botón
+    }
+  }
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-40 border-t border-[#D4E6F0] bg-white/95 backdrop-blur-md md:hidden">
@@ -62,7 +84,19 @@ export function MobileNav() {
             </motion.button>
           )
         })}
+
+        {/* BOTÓN DE DESCARGAR APP - Solo aparece si el dispositivo permite instalarla */}
+        {installPrompt && (
+          <motion.button
+            onClick={handleInstallClick}
+            className="relative flex flex-col items-center gap-0.5 rounded-lg px-3 py-1.5 text-green-600 transition-colors"
+            whileTap={{ scale: 0.9 }}
+          >
+            <span className="relative z-10"><Download className="h-5 w-5" /></span>
+            <span className="relative z-10 text-[10px] font-medium leading-tight">Instalar</span>
+          </motion.button>
+        )}
       </div>
     </nav>
   )
-}
+} 
