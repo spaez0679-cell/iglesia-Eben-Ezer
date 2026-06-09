@@ -3,26 +3,25 @@ import { NextRequest, NextResponse } from 'next/server'
 const cache = new Map<string, { data: any; timestamp: number }>()
 const CACHE_TTL = 10 * 60 * 1000 
 
-// Los números de los libros para la API de getbible
 const bibleBooksMap: Record<string, string> = {
-  "Génesis": "1", "Éxodo": "2", "Levítico": "3", "Números": "4",
-  "Deuteronomio": "5", "Josué": "6", "Jueces": "7", "Rut": "8",
-  "1 Samuel": "9", "2 Samuel": "10", "1 Reyes": "11", "2 Reyes": "12",
-  "1 Crónicas": "13", "2 Crónicas": "14", "Esdras": "15", "Nehemías": "16",
-  "Ester": "17", "Job": "18", "Salmos": "19", "Proverbios": "20",
-  "Eclesiastés": "21", "Cantares": "22", "Isaías": "23", "Jeremías": "24",
-  "Lamentaciones": "25", "Ezequiel": "26", "Daniel": "27", "Oseas": "28",
-  "Joel": "29", "Amós": "30", "Abdías": "31", "Jonás": "32", "Miqueas": "33",
-  "Nahúm": "34", "Habacuc": "35", "Sofonías": "36", "Hageo": "37",
-  "Zacarías": "38", "Malaquías": "39",
-  "Mateo": "40", "Marcos": "41", "Lucas": "42", "Juan": "43",
-  "Hechos": "44", "Romanos": "45", "1 Corintios": "46", "2 Corintios": "47",
-  "Gálatas": "48", "Efesios": "49", "Filipenses": "50", "Colosenses": "51",
-  "1 Tesalonicenses": "52", "2 Tesalonicenses": "53",
-  "1 Timoteo": "54", "2 Timoteo": "55",
-  "Tito": "56", "Filemón": "57", "Hebreos": "58", "Santiago": "59",
-  "1 Pedro": "60", "2 Pedro": "61", "1 Juan": "62", "2 Juan": "63",
-  "3 Juan": "64", "Judas": "65", "Apocalipsis": "66"
+  "Génesis": "genesis", "Éxodo": "exodus", "Levítico": "leviticus", "Números": "numbers",
+  "Deuteronomio": "deuteronomy", "Josué": "joshua", "Jueces": "judges", "Rut": "ruth",
+  "1 Samuel": "1 samuel", "2 Samuel": "2 samuel", "1 Reyes": "1 kings", "2 Reyes": "2 kings",
+  "1 Crónicas": "1 chronicles", "2 Crónicas": "2 chronicles", "Esdras": "ezra", "Nehemías": "nehemiah",
+  "Ester": "esther", "Job": "job", "Salmos": "psalms", "Proverbios": "proverbs",
+  "Eclesiastés": "ecclesiastes", "Cantares": "song of solomon", "Isaías": "isaiah", "Jeremías": "jeremiah",
+  "Lamentaciones": "lamentations", "Ezequiel": "ezekiel", "Daniel": "daniel", "Oseas": "hosea",
+  "Joel": "joel", "Amós": "amos", "Abdías": "obadiah", "Jonás": "jonah", "Miqueas": "micah",
+  "Nahúm": "nahum", "Habacuc": "habakkuk", "Sofonías": "zephaniah", "Hageo": "haggai",
+  "Zacarías": "zechariah", "Malaquías": "malachi",
+  "Mateo": "matthew", "Marcos": "mark", "Lucas": "luke", "Juan": "john",
+  "Hechos": "acts", "Romanos": "romans", "1 Corintios": "1 corinthians", "2 Corintios": "2 corinthians",
+  "Gálatas": "galatians", "Efesios": "ephesians", "Filipenses": "philippians", "Colosenses": "colossians",
+  "1 Tesalonicenses": "1 thessalonians", "2 Tesalonicenses": "2 thessalonians",
+  "1 Timoteo": "1 timothy", "2 Timoteo": "2 timothy",
+  "Tito": "titus", "Filemón": "philemon", "Hebreos": "hebrews", "Santiago": "james",
+  "1 Pedro": "1 peter", "2 Pedro": "2 peter", "1 Juan": "1 john", "2 Juan": "2 john",
+  "3 Juan": "3 john", "Judas": "jude", "Apocalipsis": "revelation"
 }
 
 export async function GET(request: NextRequest) {
@@ -37,69 +36,42 @@ export async function GET(request: NextRequest) {
     }
 
     const bookParam = decodeURIComponent(rawBook)
-    const bookNumber = bibleBooksMap[bookParam]
+    const bookClean = bibleBooksMap[bookParam] || bookParam.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "")
     
-    if (!bookNumber) {
-       return NextResponse.json({ error: 'Libro no encontrado' }, { status: 400 })
-    }
-    
-    const cacheKey = `rvr1960:${bookNumber}:${chapter}:${verse || 'all'}`
+    const cacheKey = `${bookClean}:${chapter}:${verse || 'all'}`
     const cached = cache.get(cacheKey)
     if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
       return NextResponse.json(cached.data)
     }
 
-    // API getbible.net - rvr1960 en MINÚSCULAS
-    const apiURL = `https://api.getbible.net/v2/rvr1960/${bookNumber}/${chapter}.json`
+    // Usamos el signo + para los espacios, como le gusta a bible-api.com
+    const passage = verse ? `${bookClean}+${chapter}:${verse}` : `${bookClean}+${chapter}`
+    const apiURL = `https://bible-api.com/${passage}?translation=valera`
 
-    const response = await fetch(apiURL, {
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-        'Accept': 'application/json'
-      }
-    })
+    const response = await fetch(apiURL)
 
     if (!response.ok) {
-      throw new Error(`API externa respondió con estado: ${response.status}`)
+      throw new Error(`API respondió con estado: ${response.status}`)
     }
     
     const externalData = await response.json()
 
-    // AQUÍ ESTABA EL ERROR ANTERIOR: La API guarda los versículos dentro de un OBJETO, no de un ARRAY.
-    // Se accede así: externalData.book[0].chapters[0].chapter
-    const chapterData = externalData?.book?.[0]?.chapters?.[0]?.chapter
-    
-    if (!chapterData) {
-       throw new Error("La API no devolvió la estructura de capítulos esperada")
+    if (!externalData.verses || externalData.verses.length === 0) {
+       throw new Error("No se encontraron versículos")
     }
 
-    // Convertimos el objeto de versículos a un array para poder procesarlo
-    let versesArray = Object.values(chapterData) as any[]
-
-    if (versesArray.length === 0) {
-       throw new Error("No se encontraron versículos en el capítulo")
-    }
-
-    // Si el usuario pide un versículo específico, lo filtramos
-    if (verse) {
-      versesArray = versesArray.filter((v: any) => String(v.verse) === verse)
-    }
-
-    const fullText = versesArray.map((v: any) => v.text).join(" ")
-
-    // Mantenemos el formato que tu frontend espera
     const formattedData = {
       reference: bookParam + " " + chapter + (verse ? ":" + verse : ""),
-      verses: versesArray.map((v: any) => ({
-        book_id: "rvr1960",
+      verses: externalData.verses.map((v: any) => ({
+        book_id: "valera",
         book_name: bookParam,
-        chapter: Number(chapter),
+        chapter: v.chapter,
         verse: v.verse,
         text: v.text.trim()
       })),
-      text: fullText,
-      translation_id: "rvr1960",
-      translation_name: "Reina-Valera 1960 (Español)"
+      text: externalData.text,
+      translation_id: "valera",
+      translation_name: "Reina-Valera 1909 (Español)"
     }
 
     cache.set(cacheKey, { data: formattedData, timestamp: Date.now() })
