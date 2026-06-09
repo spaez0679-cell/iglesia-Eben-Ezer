@@ -11,7 +11,7 @@ export default function manifest(): MetadataRoute.Manifest {
     theme_color: '#1a73e8', // Puedes cambiar este color por el principal de tu iglesia
     icons: [
       {
-        url: '/logo-header.png', // Usa el logo que ya tienes en tu carpeta public
+        src: '/logo-header.png', // Usa el logo que ya tienes en tu carpeta public
         sizes: 'any',
         type: 'image/png',
       }
