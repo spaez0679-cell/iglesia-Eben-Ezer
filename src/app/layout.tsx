@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { Toaster } from "@/components/ui/toaster";
+import Script from 'next/script' // <-- NUEVO: Importamos Script
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -52,9 +53,20 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased bg-background text-foreground`}
       >
+        {/* NUEVO: Código que activa el Service Worker para que se pueda instalar la App */}
+        <Script id="register-sw" strategy="afterInteractive">
+          {`
+            if ('serviceWorker' in navigator) {
+              window.addEventListener('load', function() {
+                navigator.serviceWorker.register('/sw.js');
+              });
+            }
+          `}
+        </Script>
+        
         {children}
         <Toaster />
       </body>
     </html>
   );
-}
+}  
