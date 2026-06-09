@@ -348,7 +348,8 @@ function NuestrosPastoresSection() {
             viewport={{ once: true }}
             className="order-1 flex justify-center lg:order-none"
           >
-            <div className="relative">
+            {/* ARREGLADO: Agregado overflow-hidden para que la tarjetita no rompa la pantalla en celulares */}
+            <div className="relative overflow-hidden">
               {/* Decorative background elements */}
               <div className="absolute -inset-4 rounded-3xl bg-gradient-to-br from-primary/15 via-accent/10 to-primary/15 blur-xl" />
               <div className="absolute -inset-1 rounded-2xl bg-gradient-to-br from-sky/30 via-primary/20 to-accent/30" />
@@ -379,13 +380,13 @@ function NuestrosPastoresSection() {
                 </div>
               </div>
 
-              {/* Floating decorative card */}
+              {/* ARREGLADO: Tarjeta flotante ajustada para no salirse en celulares pequeños */}
               <motion.div
                 initial={{ opacity: 0, scale: 0.8 }}
                 whileInView={{ opacity: 1, scale: 1 }}
                 viewport={{ once: true }}
                 transition={{ delay: 0.4, duration: 0.5 }}
-                className="absolute -right-4 -bottom-4 z-10 rounded-xl bg-white p-3 shadow-lg border border-[#D4E6F0] sm:-right-6 sm:-bottom-6"
+                className="absolute right-2 bottom-2 z-10 rounded-xl bg-white p-3 shadow-lg border border-[#D4E6F0] sm:-right-4 sm:-bottom-4"
               >
                 <div className="flex items-center gap-2">
                   <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10">
@@ -478,13 +479,13 @@ function NuestrosPastoresSection() {
               </div>
             </motion.div>
 
-            {/* Ministry highlights */}
+            {/* ARREGLADO: Ministry highlights. Cambiado a 1 columna en celulares chicos, 2 en normales */}
             <motion.div
               variants={stagger}
               initial="hidden"
               whileInView="visible"
               viewport={{ once: true }}
-              className="mt-8 grid grid-cols-2 gap-3 sm:gap-4"
+              className="mt-8 grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4"
             >
               {[
                 {
@@ -1352,7 +1353,8 @@ function ContactLocationSection() {
 /* ─── Main HomePage ─── */
 export function HomePage() {
   return (
-    <div className="pb-16 md:pb-0">
+    // ARREGLADO: Agregado overflow-x-hidden para que nada se salga de la pantalla en celulares
+    <div className="overflow-x-hidden pb-16 md:pb-0">
       <HeroSection />
       <WelcomeSection />
       <NuestrosPastoresSection />
@@ -1364,4 +1366,4 @@ export function HomePage() {
       <ContactLocationSection />
     </div>
   )
-}
+} 
