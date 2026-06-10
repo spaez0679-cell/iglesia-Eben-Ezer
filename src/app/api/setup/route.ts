@@ -4,21 +4,17 @@ import { hash } from 'bcrypt'
 
 export async function GET() {
   try {
-    // Primero revisamos si el usuario ya existe
-    const existingAdmin = await db.admin.findUnique({
-      where: { username: 'admin' }
-    })
-
-    if (existingAdmin) {
-      return NextResponse.json({ 
-        message: 'El usuario admin ya existe. Intenta loguearte con admin / admin123' 
-      })
-    }
-
-    // Si no existe, lo creamos
     const hashedPassword = await hash('admin123', 10)
-    await db.admin.create({
-      data: {
+    
+    // Upsert: Crea el usuario si no existe, o lo actualiza si ya está
+    const admin = await db.admin.upsert({
+      where: { username: 'admin' },
+      update: {
+        password: hashedPassword, // Fuerza la contraseña a ser admin123
+        name: 'Administrador',
+        role: 'admin',
+      },
+      create: {
         username: 'admin',
         password: hashedPassword,
         name: 'Administrador',
@@ -27,13 +23,14 @@ export async function GET() {
     })
 
     return NextResponse.json({ 
-      message: '¡Usuario admin creado con éxito! Ya puedes loguearte con admin / admin123' 
+      message: '¡Admin creado/actualizado con éxito! Ya puedes loguearte.',
+      user: admin.username
     })
 
-  } catch (error) {
+  } catch (error: any) {
     console.error('Setup error:', error)
     return NextResponse.json(
-      { error: 'Error al crear el usuario' },
+      { error: 'Error al crear el admin', details: error.message },
       { status: 500 }
     )
   }
