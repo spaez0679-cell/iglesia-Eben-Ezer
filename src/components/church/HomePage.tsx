@@ -602,7 +602,7 @@ function WelcomeSection() {
 
           <p className="mt-6 text-base leading-relaxed text-muted-foreground sm:text-lg">
             ¡Gracias por visitarnos! En la Iglesia Cristiana EBEN EZER, creemos
-            que la La Restauración es un lugar de encuentro, fe y esperanza. Aquí
+            que la casa de Dios es un lugar de encuentro, fe y esperanza. Aquí
             encontrarás un hogar espiritual donde puedes crecer en la
             Palabra, conectar con hermanos y experimentar el amor de Dios. Bajo
             la guía de nuestros pastores,{' '}

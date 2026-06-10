@@ -73,7 +73,7 @@ export function Footer() {
               </div>
             </div>
             <p className="mt-4 text-sm leading-relaxed text-white/70">
-              Bienvenidos a la La Restauración. Somos una comunidad de fe que busca
+              Bienvenidos a la Casa de Dios. Somos una comunidad de fe que busca
               glorificar a Dios y servir a nuestros hermanos, bajo la dirección
               de los Pastores Oscar Aguero y Mónica Rosales.
             </p>
