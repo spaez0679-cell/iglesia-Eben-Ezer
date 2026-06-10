@@ -56,7 +56,7 @@ export function ShareMenu({
   const [isOpen, setIsOpen] = useState(false)
   const [copied, setCopied] = useState(false)
   const shareUrl = url || (typeof window !== 'undefined' ? window.location.href : '')
-  const shareText = text || `Visita ${title} — Iglesia Cristiana, Casa de Dios`
+  const shareText = text || `Visita ${title} — Iglesia Cristiana, La Restauración`
 
   const getShareUrl = useCallback(
     (platform: string) => {

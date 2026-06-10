@@ -16,8 +16,8 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.NEXT_PUBLIC_BASE_URL || 'https://preview-5203d650-92bc-4dad-b6d7-429af441e014.space.chatglm.site'),
-  title: "Iglesia EBEN EZER - Casa de Dios",
-  description: "Iglesia Cristiana EBEN EZER - Bienvenidos a la Casa de Dios. Predicaciones, eventos, reuniones de jóvenes y más.",
+  title: "Iglesia EBEN EZER - La Restauración",
+  description: "Iglesia Cristiana EBEN EZER - Bienvenidos a la La Restauración. Predicaciones, eventos, reuniones de jóvenes y más.",
   keywords: ["Iglesia", "EBEN EZER", "Cristiana", "Predicaciones", "Fe", "Dios"],
   icons: {
     icon: [
@@ -31,8 +31,8 @@ export const metadata: Metadata = {
   },
   manifest: "/manifest.json",
   openGraph: {
-    title: "Iglesia EBEN EZER - Casa de Dios",
-    description: "Iglesia Cristiana EBEN EZER - Bienvenidos a la Casa de Dios.",
+    title: "Iglesia EBEN EZER - La Restauración",
+    description: "Iglesia Cristiana EBEN EZER - Bienvenidos a la La Restauración.",
     type: "website",
     images: [{
       url: "/logo.png",

@@ -42,7 +42,7 @@ import { ShareMenu } from '@/components/church/ShareMenu'
 /* ─── Church Constants ─── */
 const CHURCH = {
   name: 'EBEN EZER',
-  subtitle: 'Iglesia Cristiana — Casa de Dios',
+  subtitle: 'Iglesia Cristiana — La Restauración',
   pastors: 'Pastores Oscar Aguero y Mónica Rosales',
   mapsLink: 'https://maps.app.goo.gl/bSMUhEHn2XLJ12q56',
   mapsEmbed:
@@ -248,7 +248,7 @@ function HeroSection() {
             transition={{ delay: 0.7, duration: 0.6 }}
             className="mt-3 text-lg font-light tracking-widest text-white/80 sm:text-xl md:text-2xl"
           >
-            Iglesia Cristiana — Casa de Dios
+            Iglesia Cristiana — La Restauración
           </motion.p>
 
           {/* Pastors */}
@@ -552,7 +552,7 @@ function NuestrosPastoresSection() {
                   Bienvenidos a la Familia
                 </p>
                 <p className="mt-2 text-lg font-bold text-white sm:text-2xl">
-                  Somos EBEN EZER, Casa de Dios
+                  Somos EBEN EZER, La Restauración
                 </p>
                 <p className="mt-2 text-sm text-white/80 sm:text-base">
                   Un lugar de encuentro, fe y esperanza para toda la familia.
@@ -602,7 +602,7 @@ function WelcomeSection() {
 
           <p className="mt-6 text-base leading-relaxed text-muted-foreground sm:text-lg">
             ¡Gracias por visitarnos! En la Iglesia Cristiana EBEN EZER, creemos
-            que la casa de Dios es un lugar de encuentro, fe y esperanza. Aquí
+            que la La Restauración es un lugar de encuentro, fe y esperanza. Aquí
             encontrarás un hogar espiritual donde puedes crecer en la
             Palabra, conectar con hermanos y experimentar el amor de Dios. Bajo
             la guía de nuestros pastores,{' '}
@@ -1031,7 +1031,7 @@ function SocialMediaSection() {
           <FollowButton />
           <ShareMenu
             title="Iglesia EBEN EZER"
-            text="Visita la Iglesia Cristiana EBEN EZER — Casa de Dios. Predicaciones, eventos, y más."
+            text="Visita la Iglesia Cristiana EBEN EZER — La Restauración. Predicaciones, eventos, y más."
             label="Compartir página"
           />
         </motion.div>
@@ -1155,7 +1155,7 @@ function ContactLocationSection() {
             Visítanos
           </h2>
           <p className="mt-2 text-muted-foreground">
-            Te esperamos en nuestra casa de Dios
+            Te esperamos en nuestra La Restauración
           </p>
         </motion.div>
 
